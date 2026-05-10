@@ -504,6 +504,9 @@ mod tests {
     use crate::runtime_client::ENV_LOCK;
     use dbx_core::cli::CliErrorCode;
     use dbx_core::models::connection::{ConnectionConfig, DatabaseType};
+    use std::sync::{Arc, Mutex};
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
 
     fn assert_failure_code(env: CliEnvelope<serde_json::Value>, expected: CliErrorCode) {
         match env {
@@ -572,6 +575,128 @@ mod tests {
         storage.save_connections(configs).await.unwrap();
     }
 
+    #[derive(Debug, Clone)]
+    struct RuntimeRequestFixture {
+        first_line: String,
+        authorization: Option<String>,
+        body: String,
+    }
+
+    #[cfg(unix)]
+    fn set_owner_only_mode(path: &std::path::Path) {
+        use std::os::unix::fs::PermissionsExt;
+
+        let mut permissions = std::fs::metadata(path).unwrap().permissions();
+        permissions.set_mode(0o600);
+        std::fs::set_permissions(path, permissions).unwrap();
+    }
+
+    fn write_runtime_discovery(dir: &std::path::Path, port: u16, token: &str) {
+        let path = dir.join("agent-runtime.json");
+        std::fs::write(&path, serde_json::json!({ "port": port, "token": token }).to_string()).unwrap();
+        #[cfg(unix)]
+        set_owner_only_mode(&path);
+    }
+
+    async fn start_runtime_fixture(
+        dir: &std::path::Path,
+        expected_requests: usize,
+    ) -> Arc<Mutex<Vec<RuntimeRequestFixture>>> {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        write_runtime_discovery(dir, port, "runtime-token");
+        let requests = Arc::new(Mutex::new(Vec::new()));
+        let captured = requests.clone();
+
+        tokio::spawn(async move {
+            for _ in 0..expected_requests {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let request = read_fixture_request(&mut stream).await;
+                let body = fixture_response(&request);
+                captured.lock().unwrap().push(request);
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    body.len(),
+                    body
+                );
+                stream.write_all(response.as_bytes()).await.unwrap();
+            }
+        });
+
+        requests
+    }
+
+    async fn read_fixture_request(stream: &mut tokio::net::TcpStream) -> RuntimeRequestFixture {
+        let mut buf = Vec::new();
+        let header_end = loop {
+            if let Some(index) = buf.windows(4).position(|window| window == b"\r\n\r\n") {
+                break index;
+            }
+            let mut chunk = [0u8; 1024];
+            let n = stream.read(&mut chunk).await.unwrap();
+            assert!(n > 0, "runtime client closed before sending headers");
+            buf.extend_from_slice(&chunk[..n]);
+        };
+        let header_text = String::from_utf8_lossy(&buf[..header_end]);
+        let mut lines = header_text.lines();
+        let first_line = lines.next().unwrap_or_default().to_string();
+        let headers: Vec<(String, String)> = lines
+            .filter_map(|line| {
+                let (name, value) = line.split_once(':')?;
+                Some((name.trim().to_string(), value.trim().to_string()))
+            })
+            .collect();
+        let content_length = headers
+            .iter()
+            .find(|(name, _)| name.eq_ignore_ascii_case("content-length"))
+            .and_then(|(_, value)| value.parse::<usize>().ok())
+            .unwrap_or(0);
+        let body_start = header_end + 4;
+        let body_end = body_start + content_length;
+
+        while buf.len() < body_end {
+            let mut chunk = [0u8; 1024];
+            let n = stream.read(&mut chunk).await.unwrap();
+            assert!(n > 0, "runtime client closed before sending body");
+            buf.extend_from_slice(&chunk[..n]);
+        }
+
+        RuntimeRequestFixture {
+            first_line,
+            authorization: headers
+                .iter()
+                .find(|(name, _)| name.eq_ignore_ascii_case("authorization"))
+                .map(|(_, value)| value.clone()),
+            body: String::from_utf8_lossy(&buf[body_start..body_end]).to_string(),
+        }
+    }
+
+    fn fixture_response(request: &RuntimeRequestFixture) -> String {
+        assert_eq!(request.authorization.as_deref(), Some("Bearer runtime-token"));
+
+        if request.first_line.starts_with("GET /context ") || request.first_line.starts_with("GET /context?") {
+            return serde_json::json!({
+                "activeConnectionId": "runtime-conn",
+                "activeConnectionName": "Runtime Connection",
+                "database": "app",
+                "sql": "select * from users"
+            })
+            .to_string();
+        }
+        if request.first_line.starts_with("GET /selection ") || request.first_line.starts_with("GET /selection?") {
+            return serde_json::json!({ "type": "grid-cells", "cells": [[1, "ada@example.com"]] }).to_string();
+        }
+        if request.first_line.starts_with("GET /result/current?") {
+            return serde_json::json!({ "columns": ["id"], "rows": [[1], [2]], "truncated": true }).to_string();
+        }
+        if request.first_line.starts_with("POST /handoff ") || request.first_line.starts_with("POST /handoff?") {
+            let item: dbx_core::handoff::HandoffItem = serde_json::from_str(&request.body).unwrap();
+            return serde_json::json!({ "id": item.id, "status": "shown" }).to_string();
+        }
+
+        panic!("unexpected runtime request: {}", request.first_line);
+    }
+
     async fn create_sqlite_fixture(path: &std::path::Path) {
         std::fs::File::create(path).unwrap();
         let pool = dbx_core::db::sqlite::connect_path(&path.display().to_string()).await.unwrap();
@@ -623,6 +748,16 @@ mod tests {
                 data
             }
             CliEnvelope::Failure { error, .. } => panic!("expected success envelope, got {error:?}"),
+        }
+    }
+
+    fn gui_success_data(env: CliEnvelope<serde_json::Value>) -> serde_json::Value {
+        match env {
+            CliEnvelope::Success { source, data, .. } => {
+                assert_eq!(source, CliSource::GuiRuntime);
+                data
+            }
+            CliEnvelope::Failure { error, .. } => panic!("expected GUI runtime success envelope, got {error:?}"),
         }
     }
 
@@ -771,6 +906,39 @@ mod tests {
         assert!(!json.contains("super-secret"));
         assert!(!json.contains("ssh-secret"));
         assert!(!json.contains("key-secret"));
+
+        std::env::remove_var("DBX_APP_DATA_DIR");
+    }
+
+    #[tokio::test]
+    async fn runtime_discovery_serves_context_selection_and_current_result_limit() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        std::env::set_var("DBX_APP_DATA_DIR", dir.path());
+        let requests = start_runtime_fixture(dir.path(), 3).await;
+
+        let context = gui_success_data(dispatch(vec!["context".into(), "--format".into(), "json".into()]).await);
+        let selection = gui_success_data(dispatch(vec!["selection".into(), "--format".into(), "json".into()]).await);
+        let result = gui_success_data(
+            dispatch(vec![
+                "result".into(),
+                "current".into(),
+                "--limit".into(),
+                "7".into(),
+                "--format".into(),
+                "json".into(),
+            ])
+            .await,
+        );
+
+        assert_eq!(context["activeConnectionId"], "runtime-conn");
+        assert_eq!(selection["type"], "grid-cells");
+        assert_eq!(result["rows"], serde_json::json!([[1], [2]]));
+
+        let requests = requests.lock().unwrap();
+        assert_eq!(requests[0].first_line, "GET /context? HTTP/1.1");
+        assert_eq!(requests[1].first_line, "GET /selection? HTTP/1.1");
+        assert_eq!(requests[2].first_line, "GET /result/current?limit=7 HTTP/1.1");
 
         std::env::remove_var("DBX_APP_DATA_DIR");
     }
@@ -1242,6 +1410,48 @@ mod tests {
             }
             CliEnvelope::Failure { error, .. } => panic!("expected queued handoff, got {error:?}"),
         }
+
+        std::env::remove_var("DBX_APP_DATA_DIR");
+    }
+
+    #[tokio::test]
+    async fn handoff_posts_to_discovered_runtime_instead_of_headless_queue() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        std::env::set_var("DBX_APP_DATA_DIR", dir.path());
+        seed_connections(dir.path(), &[mysql_fixture("local-id", "local", Some("#22c55e"), "local-secret")]).await;
+        let requests = start_runtime_fixture(dir.path(), 1).await;
+
+        let data = gui_success_data(
+            dispatch(vec![
+                "handoff".into(),
+                "--conn".into(),
+                "local".into(),
+                "--title".into(),
+                "Review generated SQL".into(),
+                "--description".into(),
+                "from agent".into(),
+                "--sql".into(),
+                "UPDATE users SET active = 0 WHERE id = 1".into(),
+                "--format".into(),
+                "json".into(),
+            ])
+            .await,
+        );
+
+        assert_eq!(data["status"], "shown");
+        let requests = requests.lock().unwrap();
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].first_line, "POST /handoff? HTTP/1.1");
+        let posted: serde_json::Value = serde_json::from_str(&requests[0].body).unwrap();
+        assert_eq!(posted["connectionId"], "local-id");
+        assert_eq!(posted["connectionName"], "local");
+        assert_eq!(posted["title"], "Review generated SQL");
+        assert_eq!(posted["description"], "from agent");
+        assert_eq!(posted["status"], "queued");
+
+        let storage = dbx_core::storage::Storage::open(&dir.path().join("dbx.db")).await.unwrap();
+        assert!(storage.load_pending_handoffs().await.unwrap().is_empty());
 
         std::env::remove_var("DBX_APP_DATA_DIR");
     }
