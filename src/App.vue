@@ -590,7 +590,7 @@ onUnmounted(() => {
                 @toggle-driver-store="showDriverStore = true"
                 @close-driver-store="showDriverStore = false"
               />
-              <DriverStorePage v-if="showDriverStore" />
+              <DriverStorePage v-if="showDriverStore" class="flex-1 min-h-0" />
               <div v-else-if="activeTab" class="flex flex-col flex-1 min-h-0">
                 <EditorToolbar
                   v-if="activeTab.mode === 'query' && !isPreviewTab(activeTab)"

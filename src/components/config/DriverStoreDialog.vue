@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { useI18n } from "vue-i18n";
-import { FolderOpen, Trash2, Download, RotateCcw, Loader2, RefreshCw } from "lucide-vue-next";
+import { FolderOpen, Trash2, Download, RotateCcw, Loader2, RefreshCw, Check } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -313,7 +313,7 @@ onUnmounted(() => {
                   <div class="text-sm font-medium">JRE {{ jre.key }} 运行时</div>
                 </div>
                 <div class="flex shrink-0 items-center gap-3">
-                  <span v-if="jre.installed" class="text-xs text-green-600">已安装</span>
+                  <Check v-if="jre.installed" class="h-4 w-4 text-green-600" />
                   <span v-else class="text-xs text-muted-foreground">未安装</span>
                   <Button
                     v-if="!jre.installed"
@@ -424,7 +424,7 @@ onUnmounted(() => {
                     {{ installing === driver.db_type ? "安装中..." : "安装" }}
                   </Button>
                   <template v-else>
-                    <span class="text-xs text-green-600">已安装</span>
+                    <Check class="h-4 w-4 text-green-600" />
                     <Button
                       v-if="driver.update_available"
                       size="sm"
