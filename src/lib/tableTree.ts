@@ -58,6 +58,20 @@ const groupDefs: Array<{
   },
 ];
 
+const objectGroupNodeTypes = new Set<TreeNodeType>([
+  "group-tables",
+  "group-views",
+  "group-procedures",
+  "group-functions",
+]);
+
+export function objectGroupRefreshParentId(node: TreeNode): string | null {
+  if (!objectGroupNodeTypes.has(node.type)) return null;
+  const suffixStart = node.id.lastIndexOf(":__");
+  if (suffixStart < 0) return null;
+  return node.id.slice(0, suffixStart);
+}
+
 export function buildGroupedObjectTreeNodes({
   nodeId,
   connectionId,

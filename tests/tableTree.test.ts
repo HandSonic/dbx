@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildTableTreeNodes, expandCachedObjectBrowserNodes } from "../src/lib/tableTree.ts";
+import { buildTableTreeNodes, expandCachedObjectBrowserNodes, objectGroupRefreshParentId } from "../src/lib/tableTree.ts";
 import type { TableInfo } from "../src/types/database.ts";
 
 function table(name: string, tableType: "TABLE" | "VIEW" = "TABLE"): TableInfo {
@@ -80,5 +80,19 @@ test("expands cached object-browser nodes back into regular table nodes", () => 
       ["table_1", "table"],
       ["table_16", "table"],
     ],
+  );
+});
+
+test("resolves grouped object refreshes to the parent schema node", () => {
+  assert.equal(
+    objectGroupRefreshParentId({
+      id: "conn:db:public:__tables",
+      label: "tree.tables",
+      type: "group-tables",
+      connectionId: "conn",
+      database: "db",
+      schema: "public",
+    }),
+    "conn:db:public",
   );
 });

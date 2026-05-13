@@ -23,7 +23,12 @@ import { isTauriRuntime } from "@/lib/tauriRuntime";
 import { isSchemaAware, TREE_SCHEMA_TYPES } from "@/lib/databaseCapabilities";
 import { buildDatabaseTreeNodes } from "@/lib/databaseTree";
 import { buildSqlServerDatabaseTreeNodes, SQLSERVER_DEFAULT_SCHEMA } from "@/lib/sqlServerTree";
-import { buildGroupedObjectTreeNodes, buildTableTreeNodes, expandCachedObjectBrowserNodes } from "@/lib/tableTree";
+import {
+  buildGroupedObjectTreeNodes,
+  buildTableTreeNodes,
+  expandCachedObjectBrowserNodes,
+  objectGroupRefreshParentId,
+} from "@/lib/tableTree";
 import { useSavedSqlStore } from "@/stores/savedSqlStore";
 
 const PINNED_TREE_NODES_STORAGE_KEY = "dbx-pinned-tree-nodes";
@@ -964,6 +969,13 @@ export const useConnectionStore = defineStore("connection", () => {
   }
 
   async function refreshTreeNode(node: TreeNode) {
+    const parentId = objectGroupRefreshParentId(node);
+    const parentNode = parentId ? findNode(treeNodes.value, parentId) : null;
+    if (parentNode) {
+      await refreshTreeNode(parentNode);
+      return;
+    }
+
     const expandedIds = collectExpandedNodeIds([node]);
     expandedIds.add(node.id);
     await clearPersistedTreeCacheForNode(node);
