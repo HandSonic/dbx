@@ -251,7 +251,7 @@ onMounted(async () => {
   if (!editorRef.value) return;
 
   const [
-    { EditorView, keymap },
+    { EditorView, keymap, rectangularSelection },
     { EditorState, Compartment, Prec },
     { sql, MSSQL, MySQL, PostgreSQL, SQLDialect },
     { basicSetup },
@@ -267,7 +267,7 @@ onMounted(async () => {
     import("@codemirror/commands"),
     import("@codemirror/language"),
   ]);
-  editorViewModule = { EditorView, keymap } as typeof import("@codemirror/view");
+  editorViewModule = { EditorView, keymap, rectangularSelection } as typeof import("@codemirror/view");
   fontThemeComp = new Compartment();
   codeMirrorTheme = new Compartment();
   wordWrapComp = new Compartment();
@@ -339,6 +339,7 @@ onMounted(async () => {
       runKeymap,
       wordWrapComp.of(props.forceWordWrap || ss.wordWrap ? EditorView.lineWrapping : []),
       readOnlyComp.of([EditorState.readOnly.of(!!props.readOnly), EditorView.editable.of(!props.readOnly)]),
+      rectangularSelection({ eventFilter: (e: MouseEvent) => e.altKey || e.button === 1 }),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           emit("update:modelValue", update.state.doc.toString());
