@@ -318,7 +318,7 @@ pub async fn execute_query(pool: &MySqlPool, sql: &str, bare: bool) -> Result<Qu
     let start = Instant::now();
 
     if is_result_set_query(sql) {
-        if bare {
+        if bare || requires_text_protocol_query(sql) {
             let mut stream = sqlx::raw_sql(sql).fetch(&*pool);
             let mut columns: Vec<String> = vec![];
             let mut column_types: Vec<String> = vec![];
@@ -406,6 +406,23 @@ pub async fn execute_query(pool: &MySqlPool, sql: &str, bare: bool) -> Result<Qu
 
 fn is_result_set_query(sql: &str) -> bool {
     starts_with_executable_sql_keyword(sql, &["SELECT", "SHOW", "DESCRIBE", "EXPLAIN", "WITH"])
+}
+
+fn requires_text_protocol_query(sql: &str) -> bool {
+    if !starts_with_executable_sql_keyword(sql, &["SHOW"]) {
+        return false;
+    }
+
+    let tokens =
+        sql.trim().trim_end_matches(';').split_whitespace().map(|token| token.to_ascii_lowercase()).collect::<Vec<_>>();
+
+    matches!(
+        tokens.iter().map(String::as_str).collect::<Vec<_>>().as_slice(),
+        ["show", "processlist"]
+            | ["show", "full", "processlist"]
+            | ["show", "slave", "status"]
+            | ["show", "replica", "status"]
+    )
 }
 
 pub async fn list_indexes(pool: &MySqlPool, database: &str, table: &str) -> Result<Vec<IndexInfo>, String> {
@@ -515,5 +532,15 @@ mod tests {
         assert!(sql.contains("information_schema.ROUTINES"));
         assert!(sql.contains("'PROCEDURE'"));
         assert!(sql.contains("'FUNCTION'"));
+    }
+
+    #[test]
+    fn mysql_management_show_queries_use_text_protocol() {
+        assert!(requires_text_protocol_query("SHOW PROCESSLIST"));
+        assert!(requires_text_protocol_query("show full processlist"));
+        assert!(requires_text_protocol_query("SHOW SLAVE STATUS"));
+        assert!(requires_text_protocol_query("show replica status"));
+        assert!(!requires_text_protocol_query("SHOW TABLES"));
+        assert!(!requires_text_protocol_query("SELECT * FROM users"));
     }
 }
