@@ -182,7 +182,7 @@ defineExpose({ focusSearch });
 
 <template>
   <div class="h-full min-h-0 flex flex-col text-sm select-none">
-    <div v-if="store.treeNodes.length > 0" class="sticky top-0 z-10 bg-background px-2 py-1">
+    <div class="sticky top-0 z-10 bg-background px-2 py-1">
       <div class="relative flex items-center gap-1">
         <div class="relative flex-1">
           <Search class="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
