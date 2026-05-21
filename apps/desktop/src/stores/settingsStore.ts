@@ -34,6 +34,14 @@ export interface AiConfig {
   enableThinking?: boolean;
 }
 
+export interface DesktopSettings {
+  run_in_background: boolean;
+}
+
+export const DEFAULT_DESKTOP_SETTINGS: DesktopSettings = {
+  run_in_background: true,
+};
+
 export interface AiProviderPreset extends Omit<AiConfig, "apiKey"> {
   label: string;
   iconSlug?: string;
@@ -311,8 +319,31 @@ function saveEditorSettings(settings: EditorSettings) {
 export const useSettingsStore = defineStore("settings", () => {
   const aiConfig = ref<AiConfig>(normalizeAiConfig({ provider: "claude" }));
   const isAiConfigLoaded = ref(false);
+  const desktopSettings = ref<DesktopSettings>({ ...DEFAULT_DESKTOP_SETTINGS });
+  const isDesktopSettingsLoaded = ref(false);
 
   const editorSettings = ref<EditorSettings>(loadEditorSettings());
+
+  async function initDesktopSettings() {
+    if (isDesktopSettingsLoaded.value) return;
+    desktopSettings.value = await api.loadDesktopSettings().catch(() => ({ ...DEFAULT_DESKTOP_SETTINGS }));
+    isDesktopSettingsLoaded.value = true;
+  }
+
+  async function updateDesktopSettings(partial: Partial<DesktopSettings>) {
+    const previous = desktopSettings.value;
+    const next = {
+      ...desktopSettings.value,
+      ...partial,
+    };
+    desktopSettings.value = next;
+    try {
+      await api.saveDesktopSettings(next);
+    } catch (error) {
+      desktopSettings.value = previous;
+      throw error;
+    }
+  }
 
   async function initAiConfig() {
     if (isAiConfigLoaded.value) return;
@@ -397,7 +428,10 @@ export const useSettingsStore = defineStore("settings", () => {
     updateAiConfig,
     isConfigured,
     editorSettings,
+    desktopSettings,
     updateEditorSettings,
+    initDesktopSettings,
+    updateDesktopSettings,
     updateColumnFormatter,
     upsertCustomColumnFormatter,
     deleteCustomColumnFormatter,

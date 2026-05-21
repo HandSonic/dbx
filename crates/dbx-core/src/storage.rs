@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::str::FromStr;
 
+use serde::{Deserialize, Serialize};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
 
 use crate::ai::{AiChatMessage, AiConfig, AiConversation};
@@ -10,6 +11,17 @@ use crate::saved_sql::{SavedSqlFile, SavedSqlFolder, SavedSqlLibrary};
 
 pub struct Storage {
     db: SqlitePool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DesktopSettings {
+    pub run_in_background: bool,
+}
+
+impl Default for DesktopSettings {
+    fn default() -> Self {
+        Self { run_in_background: true }
+    }
 }
 
 const SCHEMA_STATEMENTS: &[&str] = &[
@@ -274,8 +286,25 @@ impl Storage {
 // ---------------------------------------------------------------------------
 
 impl Storage {
-    pub async fn save_password_hash(&self, hash: &str) -> Result<(), String> {
-        let json = serde_json::json!({ "password_hash": hash }).to_string();
+    async fn load_app_settings_json(&self) -> Result<serde_json::Map<String, serde_json::Value>, String> {
+        let row: Option<(String,)> = sqlx::query_as("SELECT settings_json FROM app_settings WHERE id = 1")
+            .fetch_optional(&self.db)
+            .await
+            .map_err(|e| e.to_string())?;
+        let Some((json,)) = row else {
+            return Ok(serde_json::Map::new());
+        };
+        match serde_json::from_str::<serde_json::Value>(&json).map_err(|e| e.to_string())? {
+            serde_json::Value::Object(map) => Ok(map),
+            _ => Ok(serde_json::Map::new()),
+        }
+    }
+
+    async fn save_app_settings_json(
+        &self,
+        settings: &serde_json::Map<String, serde_json::Value>,
+    ) -> Result<(), String> {
+        let json = serde_json::Value::Object(settings.clone()).to_string();
         sqlx::query("INSERT OR REPLACE INTO app_settings (id, settings_json) VALUES (1, ?)")
             .bind(&json)
             .execute(&self.db)
@@ -284,18 +313,31 @@ impl Storage {
         Ok(())
     }
 
+    pub async fn save_password_hash(&self, hash: &str) -> Result<(), String> {
+        let mut settings = self.load_app_settings_json().await?;
+        settings.insert("password_hash".to_string(), serde_json::Value::String(hash.to_string()));
+        self.save_app_settings_json(&settings).await
+    }
+
     pub async fn load_password_hash(&self) -> Result<Option<String>, String> {
-        let row: Option<(String,)> = sqlx::query_as("SELECT settings_json FROM app_settings WHERE id = 1")
-            .fetch_optional(&self.db)
-            .await
-            .map_err(|e| e.to_string())?;
-        match row {
-            Some((json,)) => {
-                let v: serde_json::Value = serde_json::from_str(&json).map_err(|e| e.to_string())?;
-                Ok(v.get("password_hash").and_then(|v| v.as_str()).map(|s| s.to_string()))
-            }
-            None => Ok(None),
-        }
+        let settings = self.load_app_settings_json().await?;
+        Ok(settings.get("password_hash").and_then(|v| v.as_str()).map(|s| s.to_string()))
+    }
+
+    pub async fn save_desktop_settings(&self, desktop_settings: &DesktopSettings) -> Result<(), String> {
+        let mut settings = self.load_app_settings_json().await?;
+        settings.insert("run_in_background".to_string(), serde_json::Value::Bool(desktop_settings.run_in_background));
+        self.save_app_settings_json(&settings).await
+    }
+
+    pub async fn load_desktop_settings(&self) -> Result<DesktopSettings, String> {
+        let settings = self.load_app_settings_json().await?;
+        Ok(DesktopSettings {
+            run_in_background: settings
+                .get("run_in_background")
+                .and_then(|value| value.as_bool())
+                .unwrap_or_else(|| DesktopSettings::default().run_in_background),
+        })
     }
 }
 
@@ -929,4 +971,47 @@ async fn persist_secret_in_tx(
         .map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{DesktopSettings, Storage};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_db_path(name: &str) -> std::path::PathBuf {
+        let stamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        std::env::temp_dir().join(format!("dbx-storage-{name}-{}-{stamp}.db", std::process::id()))
+    }
+
+    #[tokio::test]
+    async fn desktop_settings_default_to_background_enabled() {
+        let path = temp_db_path("desktop-settings-default");
+        let storage = Storage::open(&path).await.unwrap();
+
+        assert_eq!(storage.load_desktop_settings().await.unwrap(), DesktopSettings { run_in_background: true });
+    }
+
+    #[tokio::test]
+    async fn desktop_settings_preserve_existing_password_hash() {
+        let path = temp_db_path("desktop-settings-preserve-password");
+        let storage = Storage::open(&path).await.unwrap();
+
+        storage.save_password_hash("hash-1").await.unwrap();
+        storage.save_desktop_settings(&DesktopSettings { run_in_background: false }).await.unwrap();
+
+        assert_eq!(storage.load_password_hash().await.unwrap(), Some("hash-1".to_string()));
+        assert_eq!(storage.load_desktop_settings().await.unwrap(), DesktopSettings { run_in_background: false });
+    }
+
+    #[tokio::test]
+    async fn password_hash_preserves_existing_desktop_settings() {
+        let path = temp_db_path("password-preserve-desktop-settings");
+        let storage = Storage::open(&path).await.unwrap();
+
+        storage.save_desktop_settings(&DesktopSettings { run_in_background: false }).await.unwrap();
+        storage.save_password_hash("hash-2").await.unwrap();
+
+        assert_eq!(storage.load_password_hash().await.unwrap(), Some("hash-2".to_string()));
+        assert_eq!(storage.load_desktop_settings().await.unwrap(), DesktopSettings { run_in_background: false });
+    }
 }

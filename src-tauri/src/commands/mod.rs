@@ -1,5 +1,6 @@
 pub mod agents;
 pub mod ai;
+pub mod app_settings;
 pub mod connection;
 #[allow(dead_code, unused_imports)]
 mod connection_secrets;

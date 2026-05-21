@@ -5,8 +5,11 @@ mod models;
 mod window_state_guard;
 
 use commands::connection::AppState;
-use dbx_core::storage::Storage;
-use std::sync::Arc;
+use dbx_core::storage::{DesktopSettings, Storage};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 use std::time::Instant;
 use tauri::{
     menu::MenuBuilder,
@@ -16,19 +19,39 @@ use tauri::{Emitter, Manager, RunEvent};
 #[cfg(any(windows, target_os = "linux"))]
 use tauri_plugin_deep_link::DeepLinkExt;
 
-fn should_hide_window_on_close(target_os: &str) -> bool {
-    matches!(target_os, "macos" | "windows")
+const DESKTOP_TRAY_ID: &str = "main-tray";
+
+pub(crate) struct WindowBehaviorState {
+    run_in_background: AtomicBool,
 }
 
-fn should_setup_desktop_tray(target_os: &str) -> bool {
-    matches!(target_os, "macos" | "windows")
+impl WindowBehaviorState {
+    fn new(settings: &DesktopSettings) -> Self {
+        Self { run_in_background: AtomicBool::new(settings.run_in_background) }
+    }
+
+    pub(crate) fn run_in_background(&self) -> bool {
+        self.run_in_background.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn set_run_in_background(&self, value: bool) {
+        self.run_in_background.store(value, Ordering::Relaxed);
+    }
+}
+
+fn should_hide_window_on_close(target_os: &str, run_in_background: bool) -> bool {
+    run_in_background && matches!(target_os, "macos" | "windows")
+}
+
+fn should_setup_desktop_tray(target_os: &str, run_in_background: bool) -> bool {
+    run_in_background && matches!(target_os, "macos" | "windows")
 }
 
 fn should_show_main_window_after_setup() -> bool {
     true
 }
 
-fn show_main_window(app: &tauri::AppHandle) {
+fn show_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.unminimize();
@@ -48,11 +71,12 @@ fn open_connection_deep_links(app: &tauri::AppHandle, links: Vec<String>) {
 }
 
 #[cfg_attr(not(any(target_os = "macos", target_os = "windows")), allow(dead_code))]
-fn setup_desktop_tray(app: &mut tauri::App) -> tauri::Result<()> {
-    let menu = MenuBuilder::new(app).text("show", "Show DBX").separator().text("quit", "Quit DBX").build()?;
-    let mut tray = TrayIconBuilder::with_id("main-tray").tooltip("DBX").menu(&menu).show_menu_on_left_click(false);
+fn setup_desktop_tray<R: tauri::Runtime, M: Manager<R>>(manager: &M) -> tauri::Result<()> {
+    let menu = MenuBuilder::new(manager).text("show", "Show DBX").separator().text("quit", "Quit DBX").build()?;
+    let mut tray =
+        TrayIconBuilder::<R>::with_id(DESKTOP_TRAY_ID).tooltip("DBX").menu(&menu).show_menu_on_left_click(false);
 
-    if let Some(icon) = app.default_window_icon().cloned() {
+    if let Some(icon) = manager.app_handle().default_window_icon().cloned() {
         tray = tray.icon(icon);
     }
 
@@ -68,8 +92,19 @@ fn setup_desktop_tray(app: &mut tauri::App) -> tauri::Result<()> {
         | TrayIconEvent::DoubleClick { button: MouseButton::Left, .. } => show_main_window(tray.app_handle()),
         _ => {}
     })
-    .build(app)?;
+    .build(manager)?;
 
+    Ok(())
+}
+
+pub(crate) fn apply_desktop_tray_preference(app: &tauri::AppHandle, run_in_background: bool) -> tauri::Result<()> {
+    if should_setup_desktop_tray(std::env::consts::OS, run_in_background) {
+        if app.tray_by_id(DESKTOP_TRAY_ID).is_none() {
+            setup_desktop_tray(app)?;
+        }
+    } else {
+        let _ = app.remove_tray_by_id(DESKTOP_TRAY_ID);
+    }
     Ok(())
 }
 
@@ -79,23 +114,27 @@ mod tests {
 
     #[test]
     fn hides_window_on_close_for_windows_and_macos() {
-        assert!(should_hide_window_on_close("windows"));
-        assert!(should_hide_window_on_close("macos"));
+        assert!(should_hide_window_on_close("windows", true));
+        assert!(should_hide_window_on_close("macos", true));
+        assert!(!should_hide_window_on_close("windows", false));
+        assert!(!should_hide_window_on_close("macos", false));
     }
 
     #[test]
     fn does_not_hide_window_on_close_for_other_platforms() {
-        assert!(!should_hide_window_on_close("linux"));
+        assert!(!should_hide_window_on_close("linux", true));
     }
 
     #[test]
     fn sets_up_desktop_tray_for_windows_and_macos() {
-        assert!(should_setup_desktop_tray("windows"));
-        assert!(should_setup_desktop_tray("macos"));
-        assert!(!should_setup_desktop_tray("linux"));
+        assert!(should_setup_desktop_tray("windows", true));
+        assert!(should_setup_desktop_tray("macos", true));
+        assert!(!should_setup_desktop_tray("windows", false));
+        assert!(!should_setup_desktop_tray("macos", false));
+        assert!(!should_setup_desktop_tray("linux", true));
         let source = include_str!("lib.rs");
         assert!(source.contains(
-            "if should_setup_desktop_tray(std::env::consts::OS) {\n                setup_desktop_tray(app)?;"
+            "if should_setup_desktop_tray(std::env::consts::OS, desktop_settings.run_in_background) {\n                setup_desktop_tray(app)?;"
         ));
     }
 
@@ -158,6 +197,7 @@ pub fn run() {
                 eprintln!("[STARTUP]   migrate_from_json in {:?}", t2.elapsed());
                 s
             });
+            let desktop_settings = tauri::async_runtime::block_on(storage.load_desktop_settings()).unwrap_or_default();
             eprintln!("[STARTUP] storage ready in {:?}", t.elapsed());
 
             let state = Arc::new(AppState::new_with_plugin_dir_and_app_version(
@@ -166,6 +206,7 @@ pub fn run() {
                 env!("CARGO_PKG_VERSION"),
             ));
             app.manage(state.clone());
+            app.manage(WindowBehaviorState::new(&desktop_settings));
             app.manage(commands::external_sql::ExternalSqlOpenState::default());
             app.manage(commands::deep_link::DeepLinkOpenState::default());
             let startup_links = commands::deep_link::connection_deep_links_from_args(std::env::args().skip(1));
@@ -181,7 +222,7 @@ pub fn run() {
                     let _ = window.set_decorations(false);
                 }
             }
-            if should_setup_desktop_tray(std::env::consts::OS) {
+            if should_setup_desktop_tray(std::env::consts::OS, desktop_settings.run_in_background) {
                 setup_desktop_tray(app)?;
             }
             window_state_guard::enforce_main_window_bounds(app.handle());
@@ -195,9 +236,16 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                if should_hide_window_on_close(std::env::consts::OS) {
+                let run_in_background = window
+                    .app_handle()
+                    .try_state::<WindowBehaviorState>()
+                    .map(|state| state.run_in_background())
+                    .unwrap_or_else(|| DesktopSettings::default().run_in_background);
+                if should_hide_window_on_close(std::env::consts::OS, run_in_background) {
                     let _ = window.hide();
                     api.prevent_close();
+                } else {
+                    window.app_handle().exit(0);
                 }
             }
         })
@@ -212,6 +260,8 @@ pub fn run() {
             commands::ai::save_ai_conversation,
             commands::ai::load_ai_conversations,
             commands::ai::delete_ai_conversation,
+            commands::app_settings::load_desktop_settings,
+            commands::app_settings::save_desktop_settings,
             commands::connection::test_connection,
             commands::connection::connect_db,
             commands::connection::disconnect_db,

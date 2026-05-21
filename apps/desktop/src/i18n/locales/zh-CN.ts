@@ -1172,6 +1172,9 @@ export default {
     appLayoutSeparatedDescription: "面板分隔更清晰，标签页为块状样式。",
     appLayoutClassic: "经典紧凑",
     appLayoutClassicDescription: "使用连续标签栏和更紧凑的面板标题。",
+    runInBackground: "关闭窗口后后台驻留",
+    runInBackgroundDescription:
+      "开启时显示系统托盘/菜单栏图标，关闭窗口会隐藏到后台；关闭后不显示图标，关闭窗口将退出应用。",
     sidebarActivation: "侧边栏打开方式",
     sidebarActivationSingle: "单击打开",
     sidebarActivationSingleDescription: "单击即可打开侧边栏中的可操作项目。",

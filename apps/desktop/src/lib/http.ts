@@ -25,6 +25,7 @@ import type {
   AiStreamChunk,
   AiConversation,
   AiModelInfo,
+  DesktopSettings,
   DriverInstallProgress,
   JavaRuntimeConfig,
   UpdateInfo,
@@ -464,6 +465,14 @@ export async function saveAiConfig(config: AiConfig): Promise<void> {
 
 export async function loadAiConfig(): Promise<AiConfig | null> {
   return get("/api/ai/config");
+}
+
+export async function loadDesktopSettings(): Promise<DesktopSettings> {
+  return { run_in_background: true };
+}
+
+export async function saveDesktopSettings(_settings: DesktopSettings): Promise<void> {
+  return;
 }
 
 // --- AI Conversations ---

@@ -40,6 +40,10 @@ export interface JavaRuntimeConfig {
   custom_java_path: string | null;
 }
 
+export interface DesktopSettings {
+  run_in_background: boolean;
+}
+
 export interface DriverInstallProgress {
   step: string;
   downloaded?: number;
@@ -115,6 +119,14 @@ export async function aiCancelStream(sessionId: string): Promise<boolean> {
 
 export async function loadAiConfig(): Promise<AiConfig | null> {
   return invoke("load_ai_config");
+}
+
+export async function loadDesktopSettings(): Promise<DesktopSettings> {
+  return invoke("load_desktop_settings");
+}
+
+export async function saveDesktopSettings(settings: DesktopSettings): Promise<void> {
+  return invoke("save_desktop_settings", { settings });
 }
 
 export async function listSystemFonts(): Promise<string[]> {
