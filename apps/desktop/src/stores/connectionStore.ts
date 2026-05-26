@@ -21,7 +21,7 @@ import type { SqlCompletionColumn, SqlCompletionTable } from "@/lib/sqlCompletio
 import * as api from "@/lib/api";
 import { isTauriRuntime } from "@/lib/tauriRuntime";
 import { isSchemaAware, usesTreeSchemaMode } from "@/lib/databaseCapabilities";
-import { buildDatabaseTreeNodes } from "@/lib/databaseTree";
+import { buildDatabaseTreeNodes, buildDuckDbConnectionTreeNodes } from "@/lib/databaseTree";
 import { buildSqlServerDatabaseTreeNodes, SQLSERVER_DEFAULT_SCHEMA } from "@/lib/sqlServerTree";
 import { findDatabaseTreeNode } from "@/lib/treeRefreshTarget";
 import { shouldMarkDisconnected } from "@/lib/connectionHealth";
@@ -689,7 +689,27 @@ export const useConnectionStore = defineStore("connection", () => {
       if (useCachedChildren(node, options)) return;
 
       const config = getConfig(connectionId);
-      if (config?.db_type === "dameng" || config?.db_type === "oracle") {
+      if (config?.db_type === "duckdb") {
+        const cacheKey = schemaCacheKey(connectionId, "duckdb-root");
+        if (!options?.force) {
+          const cached = await loadPersistedTreeChildren(node, cacheKey);
+          if (cached.hit) {
+            if (cached.isStale) refreshStaleTreeNode(node);
+            return;
+          }
+        }
+        const [databases, schemas] = await Promise.all([
+          api.listDatabases(connectionId),
+          api.listSchemas(connectionId, "main"),
+        ]);
+        const children = withSavedSqlRoot(
+          connectionId,
+          buildDuckDbConnectionTreeNodes(connectionId, databases, schemas),
+          node,
+        );
+        setChildren(node, children);
+        await savePersistedTreeChildren(cacheKey, children);
+      } else if (config?.db_type === "dameng" || config?.db_type === "oracle") {
         const effectiveDb = config.database || "";
         const cacheKey = schemaCacheKey(connectionId, effectiveDb, "schemas");
         if (!options?.force) {
