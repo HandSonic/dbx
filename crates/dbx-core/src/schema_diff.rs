@@ -115,6 +115,8 @@ pub struct SchemaDiffPreparationOptions {
     pub database_type: DatabaseType,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub target_schema: Option<String>,
+    #[serde(default)]
+    pub ignore_comments: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -232,13 +234,14 @@ fn diff_schema(options: &SchemaDiffPreparationOptions) -> Vec<TableDiff> {
     for name in common {
         let Some(source) = source_details.get(name.as_str()) else { continue };
         let Some(target) = target_details.get(name.as_str()) else { continue };
-        let column_diffs = diff_columns(&source.columns, &target.columns);
+        let column_diffs = diff_columns_with_options(&source.columns, &target.columns, options.ignore_comments);
         let index_diffs = diff_indexes(&source.indexes, &target.indexes);
         let foreign_key_diffs = diff_foreign_keys(&source.foreign_keys, &target.foreign_keys);
         let trigger_diffs = diff_triggers(&source.triggers, &target.triggers);
         let source_comment = source_table_comments.get(name.as_str()).cloned().unwrap_or(None);
         let target_comment = target_table_comments.get(name.as_str()).cloned().unwrap_or(None);
-        let comment_changed = source_comment.clone().unwrap_or_default() != target_comment.clone().unwrap_or_default();
+        let comment_changed = !options.ignore_comments
+            && source_comment.clone().unwrap_or_default() != target_comment.clone().unwrap_or_default();
 
         if !column_diffs.is_empty()
             || !index_diffs.is_empty()
@@ -275,6 +278,10 @@ fn diff_names(source: &[String], target: &[String]) -> (Vec<String>, Vec<String>
 }
 
 pub fn diff_columns(source: &[ColumnInfo], target: &[ColumnInfo]) -> Vec<ColumnDiff> {
+    diff_columns_with_options(source, target, false)
+}
+
+fn diff_columns_with_options(source: &[ColumnInfo], target: &[ColumnInfo], ignore_comments: bool) -> Vec<ColumnDiff> {
     let mut diffs = Vec::new();
     let target_map: HashMap<&str, &ColumnInfo> = target.iter().map(|column| (column.name.as_str(), column)).collect();
     let source_map: HashMap<&str, &ColumnInfo> = source.iter().map(|column| (column.name.as_str(), column)).collect();
@@ -301,8 +308,9 @@ pub fn diff_columns(source: &[ColumnInfo], target: &[ColumnInfo]) -> Vec<ColumnD
                     source_column.column_default.as_deref().unwrap_or("NULL")
                 ));
             }
-            if source_column.comment.as_deref().unwrap_or_default()
-                != target_column.comment.as_deref().unwrap_or_default()
+            if !ignore_comments
+                && source_column.comment.as_deref().unwrap_or_default()
+                    != target_column.comment.as_deref().unwrap_or_default()
             {
                 changes.push(format!(
                     "comment: {} → {}",
@@ -551,6 +559,11 @@ fn column_def(col: &ColumnInfo, db_type: DatabaseType) -> String {
     if let Some(default) = &col.column_default {
         definition.push_str(&format!(" DEFAULT {default}"));
     }
+    if matches!(db_type, DatabaseType::Mysql | DatabaseType::Doris | DatabaseType::StarRocks) {
+        if let Some(comment) = &col.comment {
+            definition.push_str(&format!(" COMMENT {}", comment_literal(comment)));
+        }
+    }
     definition
 }
 
@@ -755,21 +768,23 @@ pub fn generate_schema_sync_sql(diffs: &[TableDiff], db_type: DatabaseType, sche
             lines.push(String::new());
         }
 
-        if let Some(columns) = &diff.columns {
-            for column in columns {
-                if let Some(source) = &column.source {
-                    if column.changes.iter().any(|change| change.starts_with("comment:")) {
-                        lines.push(column_comment_sql(
-                            &diff.name,
-                            &column.name,
-                            source.comment.as_deref().unwrap_or_default(),
-                            db_type,
-                            schema,
-                        ));
-                    }
-                    if column.diff_type == "added" {
-                        if let Some(comment) = &source.comment {
-                            lines.push(column_comment_sql(&diff.name, &column.name, comment, db_type, schema));
+        if !is_mysql {
+            if let Some(columns) = &diff.columns {
+                for column in columns {
+                    if let Some(source) = &column.source {
+                        if column.changes.iter().any(|change| change.starts_with("comment:")) {
+                            lines.push(column_comment_sql(
+                                &diff.name,
+                                &column.name,
+                                source.comment.as_deref().unwrap_or_default(),
+                                db_type,
+                                schema,
+                            ));
+                        }
+                        if column.diff_type == "added" {
+                            if let Some(comment) = &source.comment {
+                                lines.push(column_comment_sql(&diff.name, &column.name, comment, db_type, schema));
+                            }
                         }
                     }
                 }
@@ -859,6 +874,21 @@ mod tests {
             column: if overrides.column.is_empty() { "user_id".to_string() } else { overrides.column },
             ref_table: if overrides.ref_table.is_empty() { "users".to_string() } else { overrides.ref_table },
             ref_column: if overrides.ref_column.is_empty() { "id".to_string() } else { overrides.ref_column },
+        }
+    }
+
+    fn column(name: &str, data_type: &str, comment: Option<&str>) -> ColumnInfo {
+        ColumnInfo {
+            name: name.to_string(),
+            data_type: data_type.to_string(),
+            is_nullable: false,
+            column_default: None,
+            is_primary_key: false,
+            extra: None,
+            comment: comment.map(str::to_string),
+            numeric_precision: None,
+            numeric_scale: None,
+            character_maximum_length: None,
         }
     }
 
@@ -987,6 +1017,83 @@ mod tests {
             ]
             .join("\n")
         );
+    }
+
+    #[test]
+    fn mysql_column_comment_changes_generate_modify_column_sql() {
+        let diffs = vec![TableDiff {
+            diff_type: "modified".to_string(),
+            object_type: None,
+            name: "users".to_string(),
+            columns: Some(vec![ColumnDiff {
+                diff_type: "modified".to_string(),
+                name: "name".to_string(),
+                source: Some(column("name", "varchar(64)", Some("用户姓名"))),
+                target: Some(column("name", "varchar(64)", Some("Name"))),
+                changes: vec!["comment: Name → 用户姓名".to_string()],
+            }]),
+            indexes: None,
+            foreign_keys: None,
+            triggers: None,
+            ddl: None,
+            source_table_comment: Some(Some("用户表".to_string())),
+            target_table_comment: Some(Some("Users".to_string())),
+        }];
+
+        assert_eq!(
+            generate_schema_sync_sql(&diffs, DatabaseType::Mysql, None),
+            [
+                "-- Alter table: users",
+                "ALTER TABLE `users`",
+                "  MODIFY COLUMN `name` varchar(64) NOT NULL COMMENT '用户姓名';",
+                "",
+                "ALTER TABLE `users` COMMENT = '用户表';",
+            ]
+            .join("\n")
+        );
+    }
+
+    #[test]
+    fn ignore_comments_skips_column_and_table_comment_diffs() {
+        let options = SchemaDiffPreparationOptions {
+            source_tables: vec![TableInfo {
+                name: "users".to_string(),
+                table_type: "BASE TABLE".to_string(),
+                comment: Some("用户表".to_string()),
+                parent_schema: None,
+                parent_name: None,
+            }],
+            target_tables: vec![TableInfo {
+                name: "users".to_string(),
+                table_type: "BASE TABLE".to_string(),
+                comment: Some("Users".to_string()),
+                parent_schema: None,
+                parent_name: None,
+            }],
+            source_details: vec![TableSchemaDetail {
+                name: "users".to_string(),
+                columns: vec![column("name", "varchar(64)", Some("用户姓名"))],
+                indexes: Vec::new(),
+                foreign_keys: Vec::new(),
+                triggers: Vec::new(),
+                ddl: None,
+            }],
+            target_details: vec![TableSchemaDetail {
+                name: "users".to_string(),
+                columns: vec![column("name", "varchar(64)", Some("Name"))],
+                indexes: Vec::new(),
+                foreign_keys: Vec::new(),
+                triggers: Vec::new(),
+                ddl: None,
+            }],
+            database_type: DatabaseType::Mysql,
+            target_schema: None,
+            ignore_comments: true,
+        };
+
+        let result = prepare_schema_diff(options);
+        assert!(result.diffs.is_empty());
+        assert!(result.sync_sql.is_empty());
     }
 
     #[test]
