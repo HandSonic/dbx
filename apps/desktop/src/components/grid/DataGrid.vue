@@ -408,6 +408,7 @@ const contextHeaderColumn = ref<string | null>(null);
 const contextHeaderColumnIndex = ref<number | null>(null);
 const detailCell = ref<{ rowIndex: number; col: number } | null>(null);
 const hoveredDetailCell = ref<{ rowIndex: number; col: number } | null>(null);
+const quickDownloadMenuCell = ref<{ rowIndex: number; col: number } | null>(null);
 const showCellDetail = ref(false);
 const activeCellDetailTab = ref<CellDetailTab>(defaultCellDetailTab());
 const cellDetailDialogOpen = ref(false);
@@ -1719,7 +1720,10 @@ function onScrollerScroll(e: Event) {
 }
 
 watch(isScrolling, (scrolling) => {
-  if (scrolling) hoveredDetailCell.value = null;
+  if (scrolling) {
+    hoveredDetailCell.value = null;
+    quickDownloadMenuCell.value = null;
+  }
 });
 
 initColumnWidths();
@@ -2367,10 +2371,26 @@ function onCellMouseleave(rowIndex: number, actualColIdx: number) {
   }
 }
 
+function quickDownloadMenuOpenFor(rowIndex: number, actualColIdx: number): boolean {
+  return quickDownloadMenuCell.value?.rowIndex === rowIndex && quickDownloadMenuCell.value.col === actualColIdx;
+}
+
+function handleQuickDownloadMenuOpenChange(open: boolean, rowIndex: number, actualColIdx: number) {
+  if (open) {
+    quickDownloadMenuCell.value = { rowIndex, col: actualColIdx };
+    hoveredDetailCell.value = { rowIndex, col: actualColIdx };
+    return;
+  }
+  if (quickDownloadMenuOpenFor(rowIndex, actualColIdx)) {
+    quickDownloadMenuCell.value = null;
+  }
+}
+
 function cellDetailButtonVisible(rowIndex: number, actualColIdx: number) {
   if (isScrolling.value) return false;
   return (
     (hoveredDetailCell.value?.rowIndex === rowIndex && hoveredDetailCell.value.col === actualColIdx) ||
+    quickDownloadMenuOpenFor(rowIndex, actualColIdx) ||
     (showCellDetail.value && detailCell.value?.rowIndex === rowIndex && detailCell.value.col === actualColIdx)
   );
 }
@@ -3349,7 +3369,8 @@ const canvasEditingCellStyle = computed(() => {
 
 const canvasDetailButtonCell = computed(() => {
   if (!useCanvasGridRows.value || isScrolling.value) return null;
-  const target = hoveredDetailCell.value ?? (showCellDetail.value ? detailCell.value : null);
+  const target =
+    hoveredDetailCell.value ?? quickDownloadMenuCell.value ?? (showCellDetail.value ? detailCell.value : null);
   if (!target || !cellDetailButtonVisible(target.rowIndex, target.col)) return null;
   const visibleColIdx = visibleColumnIndexes.value.indexOf(target.col);
   if (visibleColIdx < 0) return null;
@@ -3357,15 +3378,18 @@ const canvasDetailButtonCell = computed(() => {
   if (!rect) return null;
   const visibleLeft = Math.max(DATA_GRID_ROW_NUM_WIDTH, rect.left);
   const visibleRight = Math.min(canvasViewportWidth.value, rect.left + rect.width);
-  if (rect.top < 0 || rect.top > canvasViewportHeight.value - 1 || visibleRight - visibleLeft < 24) return null;
-  return { rowIndex: target.rowIndex, visibleColIdx, actualColIdx: target.col, rect };
+  const canQuickDownload = canQuickDownloadCellValue(target.rowIndex, target.col);
+  const minWidth = canQuickDownload ? 46 : 24;
+  if (rect.top < 0 || rect.top > canvasViewportHeight.value - 1 || visibleRight - visibleLeft < minWidth) return null;
+  return { rowIndex: target.rowIndex, visibleColIdx, actualColIdx: target.col, rect, canQuickDownload };
 });
 
 const canvasDetailButtonStyle = computed(() => {
   const cell = canvasDetailButtonCell.value;
   if (!cell) return {};
+  const actionWidth = cell.canQuickDownload ? 44 : 22;
   return {
-    left: `${cell.rect.left + cell.rect.width - 22}px`,
+    left: `${Math.max(DATA_GRID_ROW_NUM_WIDTH, cell.rect.left + cell.rect.width - actionWidth)}px`,
     top: `${cell.rect.top + 2}px`,
   };
 });
@@ -4020,6 +4044,14 @@ function copyDetailColumnName() {
 
 function canDownloadDetailBinaryValue(detail: DataGridCellDetail | null): boolean {
   return !!detail && canDownloadBinaryCellValue(detail.value, detail.type);
+}
+
+function canQuickDownloadCellValue(rowIndex: number, columnIndex: number): boolean {
+  return canDownloadDetailBinaryValue(cellDetailFor(rowIndex, columnIndex));
+}
+
+function downloadCellBinaryValue(rowIndex: number, columnIndex: number, mode: BinaryCellDownloadMode) {
+  void downloadDetailBinaryValue(cellDetailFor(rowIndex, columnIndex), mode);
 }
 
 async function downloadDetailBinaryValue(detail: DataGridCellDetail | null, mode: BinaryCellDownloadMode) {
@@ -5858,15 +5890,47 @@ const gridContextMenuItems = computed<ContextMenuItem[]>(() => {
                       </template>
                       <template v-else>
                         {{ cell.display }}
-                        <button
+                        <div
                           v-if="cellDetailButtonVisible(cell.recordIndex, cell.valueIndex)"
-                          class="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground"
-                          :title="t('grid.cellDetails')"
-                          @mousedown.stop
-                          @click.stop="showCellDetails(cell.recordIndex, cell.valueIndex)"
+                          class="absolute right-0.5 top-0.5 flex items-center gap-1"
                         >
-                          <Info class="h-3 w-3" />
-                        </button>
+                          <DropdownMenu
+                            v-if="canQuickDownloadCellValue(cell.recordIndex, cell.valueIndex)"
+                            :open="quickDownloadMenuOpenFor(cell.recordIndex, cell.valueIndex)"
+                            @update:open="
+                              (value: boolean) =>
+                                handleQuickDownloadMenuOpenChange(value, cell.recordIndex, cell.valueIndex)
+                            "
+                          >
+                            <DropdownMenuTrigger as-child>
+                              <button
+                                class="flex h-5 w-5 items-center justify-center rounded bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground"
+                                :title="t('grid.downloadBinaryValue')"
+                                @mousedown.stop
+                                @click.stop
+                              >
+                                <Download class="h-3 w-3" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" class="w-44">
+                              <DropdownMenuItem
+                                v-for="mode in BINARY_CELL_DOWNLOAD_MODES"
+                                :key="mode"
+                                @click="downloadCellBinaryValue(cell.recordIndex, cell.valueIndex, mode)"
+                              >
+                                {{ t(`grid.binaryDownload.${mode}`) }}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          <button
+                            class="flex h-5 w-5 items-center justify-center rounded bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground"
+                            :title="t('grid.cellDetails')"
+                            @mousedown.stop
+                            @click.stop="showCellDetails(cell.recordIndex, cell.valueIndex)"
+                          >
+                            <Info class="h-3 w-3" />
+                          </button>
+                        </div>
                       </template>
                     </div>
                     <div class="shrink-0" :style="{ width: `${transposeRecordWindow.afterWidth}px` }" />
@@ -6465,24 +6529,68 @@ const gridContextMenuItems = computed<ContextMenuItem[]>(() => {
                         @keydown.stop="onEditKeydown"
                       />
                     </div>
-                    <button
+                    <div
                       v-if="canvasDetailButtonCell"
-                      class="absolute pointer-events-auto z-20 flex h-5 w-5 items-center justify-center rounded bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground"
+                      class="absolute pointer-events-auto z-20 flex items-center gap-1"
                       :style="canvasDetailButtonStyle"
-                      :title="t('grid.cellDetails')"
                       @mouseenter="keepCanvasDetailHover"
                       @mouseleave="clearCanvasDetailHover"
-                      @mousedown.stop
-                      @click.stop="
-                        showCellDetailsForVisibleCell(
-                          canvasDetailButtonCell.rowIndex,
-                          canvasDetailButtonCell.visibleColIdx,
-                          canvasDetailButtonCell.actualColIdx,
-                        )
-                      "
                     >
-                      <Info class="h-3 w-3" />
-                    </button>
+                      <DropdownMenu
+                        v-if="canvasDetailButtonCell.canQuickDownload"
+                        :open="
+                          quickDownloadMenuOpenFor(canvasDetailButtonCell.rowIndex, canvasDetailButtonCell.actualColIdx)
+                        "
+                        @update:open="
+                          (value: boolean) =>
+                            handleQuickDownloadMenuOpenChange(
+                              value,
+                              canvasDetailButtonCell!.rowIndex,
+                              canvasDetailButtonCell!.actualColIdx,
+                            )
+                        "
+                      >
+                        <DropdownMenuTrigger as-child>
+                          <button
+                            class="flex h-5 w-5 items-center justify-center rounded bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground"
+                            :title="t('grid.downloadBinaryValue')"
+                            @mousedown.stop
+                            @click.stop
+                          >
+                            <Download class="h-3 w-3" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" class="w-44">
+                          <DropdownMenuItem
+                            v-for="mode in BINARY_CELL_DOWNLOAD_MODES"
+                            :key="mode"
+                            @click="
+                              downloadCellBinaryValue(
+                                canvasDetailButtonCell.rowIndex,
+                                canvasDetailButtonCell.actualColIdx,
+                                mode,
+                              )
+                            "
+                          >
+                            {{ t(`grid.binaryDownload.${mode}`) }}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <button
+                        class="flex h-5 w-5 items-center justify-center rounded bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground"
+                        :title="t('grid.cellDetails')"
+                        @mousedown.stop
+                        @click.stop="
+                          showCellDetailsForVisibleCell(
+                            canvasDetailButtonCell.rowIndex,
+                            canvasDetailButtonCell.visibleColIdx,
+                            canvasDetailButtonCell.actualColIdx,
+                          )
+                        "
+                      >
+                        <Info class="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -6597,17 +6705,49 @@ const gridContextMenuItems = computed<ContextMenuItem[]>(() => {
                       </template>
                       <template v-else>
                         {{ formatCellCached(item.data[col.actualColIdx], col.actualColIdx) }}
-                        <button
+                        <div
                           v-if="cellDetailButtonVisible(item.displayIndex, col.actualColIdx)"
-                          class="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground"
-                          :title="t('grid.cellDetails')"
-                          @mousedown.stop
-                          @click.stop="
-                            showCellDetailsForVisibleCell(item.displayIndex, col.visibleColIdx, col.actualColIdx)
-                          "
+                          class="absolute right-0.5 top-0.5 flex items-center gap-1"
                         >
-                          <Info class="h-3 w-3" />
-                        </button>
+                          <DropdownMenu
+                            v-if="canQuickDownloadCellValue(item.displayIndex, col.actualColIdx)"
+                            :open="quickDownloadMenuOpenFor(item.displayIndex, col.actualColIdx)"
+                            @update:open="
+                              (value: boolean) =>
+                                handleQuickDownloadMenuOpenChange(value, item.displayIndex, col.actualColIdx)
+                            "
+                          >
+                            <DropdownMenuTrigger as-child>
+                              <button
+                                class="flex h-5 w-5 items-center justify-center rounded bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground"
+                                :title="t('grid.downloadBinaryValue')"
+                                @mousedown.stop
+                                @click.stop
+                              >
+                                <Download class="h-3 w-3" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" class="w-44">
+                              <DropdownMenuItem
+                                v-for="mode in BINARY_CELL_DOWNLOAD_MODES"
+                                :key="mode"
+                                @click="downloadCellBinaryValue(item.displayIndex, col.actualColIdx, mode)"
+                              >
+                                {{ t(`grid.binaryDownload.${mode}`) }}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          <button
+                            class="flex h-5 w-5 items-center justify-center rounded bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground"
+                            :title="t('grid.cellDetails')"
+                            @mousedown.stop
+                            @click.stop="
+                              showCellDetailsForVisibleCell(item.displayIndex, col.visibleColIdx, col.actualColIdx)
+                            "
+                          >
+                            <Info class="h-3 w-3" />
+                          </button>
+                        </div>
                       </template>
                     </div>
                     <div class="shrink-0" :style="{ width: `${horizontalColumnWindow.afterWidth}px` }" />
