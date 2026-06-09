@@ -14,6 +14,7 @@ import {
   KeyRound,
   TerminalSquare,
   Asterisk,
+  History,
 } from "@lucide/vue";
 import { RecycleScroller } from "vue-virtual-scroller";
 import "vue-virtual-scroller/dist/vue-virtual-scroller.css";
@@ -29,7 +30,8 @@ import { Switch } from "@/components/ui/switch";
 import DangerConfirmDialog from "@/components/editor/DangerConfirmDialog.vue";
 import RedisValueViewer from "./RedisValueViewer.vue";
 import * as api from "@/lib/api";
-import type { RedisKeyInfo, RedisScanResult } from "@/lib/api";
+import type { RedisKeyInfo, RedisScanResult, HistoryEntry } from "@/lib/api";
+import { uuid } from "@/lib/utils";
 import { useConnectionStore } from "@/stores/connectionStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import {
@@ -443,17 +445,44 @@ async function runRedisCommand(command: string) {
     if (result.safety === "confirm") {
       await loadKeys();
     }
+    // Persist to history
+    persistRedisHistory(command, true, result.value);
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     appendCommandHistory({
       prompt,
       command,
-      output: error instanceof Error ? error.message : String(error),
+      output: errorMessage,
       error: true,
     });
+    // Persist failed command too
+    persistRedisHistory(command, false, null, errorMessage);
   } finally {
     commandRunning.value = false;
     scrollCommandTerminalToEnd();
   }
+}
+
+function persistRedisHistory(command: string, success: boolean, resultValue?: unknown, errorMessage?: string) {
+  const connName = connectionStore.getConfig(props.connectionId)?.name || "";
+  const entry: HistoryEntry = {
+    id: uuid(),
+    connection_id: props.connectionId,
+    connection_name: connName,
+    database: String(commandDb.value),
+    sql: command,
+    executed_at: new Date().toISOString(),
+    execution_time_ms: 0,
+    success,
+    error: errorMessage,
+    activity_kind: "redis_command",
+    operation: command.split(" ")[0].toUpperCase(),
+    target: "",
+    affected_rows: null,
+    rollback_sql: null,
+    details_json: resultValue != null ? JSON.stringify(resultValue) : null,
+  };
+  void api.saveHistory(entry);
 }
 
 async function openCommandPanel() {
@@ -794,9 +823,38 @@ function resumeRedisBrowserBackgroundWork() {
   registerRedisDbFlushedListener();
 }
 
+async function loadPersistedRedisHistory() {
+  try {
+    const entries = await api.loadRedisHistory(200, 0);
+    if (entries.length === 0) return;
+    // Merge persisted entries into in-memory commandHistory (newest first, reversed for display order)
+    const persisted: RedisCommandHistoryEntry[] = entries.reverse().map((entry) => ({
+      id: ++commandHistoryId,
+      prompt: `db${entry.database}>`,
+      command: entry.sql,
+      output: entry.details_json ? formatRedisCommandResult(JSON.parse(entry.details_json)) : entry.error || "",
+      error: !entry.success,
+    }));
+    commandHistory.value = [...persisted, ...commandHistory.value];
+    scrollCommandTerminalToEnd();
+  } catch {
+    // Silently ignore load errors — history is best-effort
+  }
+}
+
+async function clearPersistedRedisHistory() {
+  try {
+    await api.clearRedisHistory();
+    toast(t("redis.historyCleared"));
+  } catch {
+    // Silently ignore
+  }
+}
+
 onMounted(() => {
   resumeRedisBrowserBackgroundWork();
   void loadKeys();
+  void loadPersistedRedisHistory();
 });
 
 onActivated(resumeRedisBrowserBackgroundWork);
@@ -1019,7 +1077,7 @@ defineExpose({ focusSearch });
       <Pane :size="64" :min-size="36">
         <div class="h-full min-w-0 bg-background flex flex-col overflow-hidden">
           <Tabs v-model="activeSidePanel" :unmount-on-hide="false" class="h-full min-h-0 gap-0">
-            <div class="h-9 shrink-0 border-b bg-background px-3 flex items-center">
+            <div class="h-9 shrink-0 border-b bg-background px-3 flex items-center justify-between">
               <TabsList class="h-7 gap-1 p-0.5">
                 <TabsTrigger value="detail" class="h-6 flex-none gap-1.5 rounded-md px-2 text-xs">
                   <KeyRound class="size-3.5" />
@@ -1034,6 +1092,16 @@ defineExpose({ focusSearch });
                   {{ t("redis.commandLine") }}
                 </TabsTrigger>
               </TabsList>
+              <Button
+                v-if="activeSidePanel === 'command'"
+                variant="ghost"
+                size="icon"
+                class="h-6 w-6"
+                :title="t('redis.clearHistory')"
+                @click="clearPersistedRedisHistory"
+              >
+                <History class="size-3.5" />
+              </Button>
             </div>
 
             <TabsContent value="detail" class="m-0 min-h-0 flex-1 flex flex-col">

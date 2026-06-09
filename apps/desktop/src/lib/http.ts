@@ -1602,12 +1602,21 @@ export async function saveHistory(entry: HistoryEntry): Promise<void> {
   return post("/api/history/save", { entry });
 }
 
-export async function loadHistory(limit: number, offset: number): Promise<HistoryEntry[]> {
-  return get(`/api/history?${qs({ limit, offset })}`);
+export async function loadHistory(limit: number, offset: number, activityKind?: string): Promise<HistoryEntry[]> {
+  return get(`/api/history?${qs({ limit, offset, activity_kind: activityKind })}`);
+}
+
+export async function loadRedisHistory(limit = 100, offset = 0): Promise<HistoryEntry[]> {
+  return loadHistory(limit, offset, "redis_command");
 }
 
 export async function clearHistory(): Promise<void> {
   return del("/api/history");
+}
+
+export async function clearRedisHistory(): Promise<void> {
+  const entries = await loadRedisHistory(1000, 0);
+  await Promise.all(entries.map((e) => deleteHistoryEntry(e.id)));
 }
 
 export async function deleteHistoryEntry(id: string): Promise<void> {

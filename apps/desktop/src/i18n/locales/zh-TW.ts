@@ -1329,6 +1329,8 @@ export default {
     jsonView: "JSON 檢視",
     rawContent: "原始內容",
     wordWrap: "自動換行",
+    clearHistory: "清除命令歷史",
+    historyCleared: "Redis 命令歷史已清除",
   },
   mongo: {
     documents: "{count} 個文件",
@@ -1384,6 +1386,7 @@ export default {
       schema_change: "結構變更",
       import: "匯入",
       transfer: "傳輸",
+      redis_command: "Redis 命令",
     },
     kindShort: {
       query: "查詢",
@@ -1391,6 +1394,7 @@ export default {
       schema_change: "結構",
       import: "匯入",
       transfer: "傳輸",
+      redis_command: "Redis",
     },
     detail: {
       kind: "類型",

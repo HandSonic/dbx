@@ -338,44 +338,61 @@ impl Storage {
         .await
     }
 
-    pub async fn load_history_entries(&self, limit: usize, offset: usize) -> Result<Vec<HistoryEntry>, String> {
+    pub async fn load_history_entries(
+        &self,
+        limit: usize,
+        offset: usize,
+        activity_kind: Option<String>,
+    ) -> Result<Vec<HistoryEntry>, String> {
         self.with_conn(move |conn| {
-            let mut stmt = conn
-                .prepare(
-                    "SELECT id, connection_name, database, sql_text, executed_at, execution_time_ms, success, \
-                     error, activity_kind, connection_id, operation, target, affected_rows, rollback_sql, details_json \
-                     FROM history ORDER BY executed_at DESC LIMIT ?1 OFFSET ?2",
-                )
-                .map_err(|e| e.to_string())?;
-            let rows = stmt
-                .query_map(params![limit as i64, offset as i64], |row| {
-                    Ok(HistoryEntry {
-                        id: row.get(0)?,
-                        connection_name: row.get(1)?,
-                        database: row.get(2)?,
-                        sql: row.get(3)?,
-                        executed_at: row.get(4)?,
-                        execution_time_ms: row.get::<_, i64>(5)? as u128,
-                        success: row.get(6)?,
-                        error: row.get(7)?,
-                        activity_kind: {
-                            let value: String = row.get(8)?;
-                            if value.is_empty() {
-                                "query".to_string()
-                            } else {
-                                value
-                            }
-                        },
-                        connection_id: row.get(9)?,
-                        operation: row.get(10)?,
-                        target: row.get(11)?,
-                        affected_rows: row.get(12)?,
-                        rollback_sql: row.get(13)?,
-                        details_json: row.get(14)?,
-                    })
+            let map_row = |row: &rusqlite::Row<'_>| -> rusqlite::Result<HistoryEntry> {
+                Ok(HistoryEntry {
+                    id: row.get(0)?,
+                    connection_name: row.get(1)?,
+                    database: row.get(2)?,
+                    sql: row.get(3)?,
+                    executed_at: row.get(4)?,
+                    execution_time_ms: row.get::<_, i64>(5)? as u128,
+                    success: row.get(6)?,
+                    error: row.get(7)?,
+                    activity_kind: {
+                        let value: String = row.get(8)?;
+                        if value.is_empty() { "query".to_string() } else { value }
+                    },
+                    connection_id: row.get(9)?,
+                    operation: row.get(10)?,
+                    target: row.get(11)?,
+                    affected_rows: row.get(12)?,
+                    rollback_sql: row.get(13)?,
+                    details_json: row.get(14)?,
                 })
-                .map_err(|e| e.to_string())?;
-            rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+            };
+
+            if let Some(kind) = activity_kind {
+                let mut stmt = conn
+                    .prepare(
+                        "SELECT id, connection_name, database, sql_text, executed_at, execution_time_ms, success, \
+                         error, activity_kind, connection_id, operation, target, affected_rows, rollback_sql, details_json \
+                         FROM history WHERE activity_kind = ?1 ORDER BY executed_at DESC LIMIT ?2 OFFSET ?3",
+                    )
+                    .map_err(|e| e.to_string())?;
+                let rows = stmt
+                    .query_map(params![kind, limit as i64, offset as i64], map_row)
+                    .map_err(|e| e.to_string())?;
+                rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+            } else {
+                let mut stmt = conn
+                    .prepare(
+                        "SELECT id, connection_name, database, sql_text, executed_at, execution_time_ms, success, \
+                         error, activity_kind, connection_id, operation, target, affected_rows, rollback_sql, details_json \
+                         FROM history ORDER BY executed_at DESC LIMIT ?1 OFFSET ?2",
+                    )
+                    .map_err(|e| e.to_string())?;
+                let rows = stmt
+                    .query_map(params![limit as i64, offset as i64], map_row)
+                    .map_err(|e| e.to_string())?;
+                rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+            }
         })
         .await
     }

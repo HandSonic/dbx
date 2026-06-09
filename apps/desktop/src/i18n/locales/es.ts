@@ -1269,6 +1269,8 @@ export default {
     jsonView: "Vista JSON",
     rawContent: "Contenido original",
     wordWrap: "Ajuste de línea",
+    clearHistory: "Borrar historial de comandos",
+    historyCleared: "Historial de comandos Redis borrado",
   },
   mongo: {
     documents: "{count} documentos",
@@ -1321,6 +1323,7 @@ export default {
       schema_change: "Cambio de esquema",
       import: "Importación",
       transfer: "Transferencia",
+      redis_command: "Comando Redis",
     },
     kindShort: {
       query: "SQL",
@@ -1328,6 +1331,7 @@ export default {
       schema_change: "DDL",
       import: "Import",
       transfer: "Mover",
+      redis_command: "Redis",
     },
     detail: {
       kind: "Tipo",

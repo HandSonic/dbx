@@ -1453,6 +1453,8 @@ export default {
     formatJson: "格式化",
     compressJson: "压缩",
     jsonFormatError: "JSON 格式不合法",
+    clearHistory: "清除命令历史",
+    historyCleared: "Redis 命令历史已清除",
   },
   mongo: {
     documents: "{count} 个文档",
@@ -1508,6 +1510,7 @@ export default {
       schema_change: "结构变更",
       import: "导入",
       transfer: "传输",
+      redis_command: "Redis 命令",
     },
     kindShort: {
       query: "查询",
@@ -1515,6 +1518,7 @@ export default {
       schema_change: "结构",
       import: "导入",
       transfer: "传输",
+      redis_command: "Redis",
     },
     detail: {
       kind: "类型",

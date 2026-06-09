@@ -1481,6 +1481,8 @@ export default {
     formatJson: "Format",
     compressJson: "Compress",
     jsonFormatError: "Invalid JSON format",
+    clearHistory: "Clear command history",
+    historyCleared: "Redis command history cleared",
   },
   mongo: {
     documents: "{count} documents",
@@ -1536,6 +1538,7 @@ export default {
       schema_change: "Schema change",
       import: "Import",
       transfer: "Transfer",
+      redis_command: "Redis Command",
     },
     kindShort: {
       query: "SQL",
@@ -1543,6 +1546,7 @@ export default {
       schema_change: "DDL",
       import: "Import",
       transfer: "Move",
+      redis_command: "Redis",
     },
     detail: {
       kind: "Type",

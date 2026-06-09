@@ -269,7 +269,9 @@ export const mongoDeleteDocuments = forward("mongoDeleteDocuments");
 // History
 export const saveHistory = forward("saveHistory");
 export const loadHistory = forward("loadHistory");
+export const loadRedisHistory = forward("loadRedisHistory");
 export const clearHistory = forward("clearHistory");
+export const clearRedisHistory = forward("clearRedisHistory");
 export const deleteHistoryEntry = forward("deleteHistoryEntry");
 
 // Updates

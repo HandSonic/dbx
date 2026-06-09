@@ -1490,7 +1490,7 @@ export interface HistoryEntry {
   execution_time_ms: number;
   success: boolean;
   error?: string;
-  activity_kind?: "query" | "data_change" | "schema_change" | "import" | "transfer";
+  activity_kind?: "query" | "data_change" | "schema_change" | "import" | "transfer" | "redis_command";
   operation?: string;
   target?: string;
   affected_rows?: number | null;
@@ -1502,12 +1502,21 @@ export async function saveHistory(entry: HistoryEntry): Promise<void> {
   return invoke("save_history", { entry });
 }
 
-export async function loadHistory(limit: number, offset: number): Promise<HistoryEntry[]> {
-  return invoke("load_history", { limit, offset });
+export async function loadHistory(limit: number, offset: number, activityKind?: string): Promise<HistoryEntry[]> {
+  return invoke("load_history", { limit, offset, activityKind: activityKind ?? null });
+}
+
+export async function loadRedisHistory(limit = 100, offset = 0): Promise<HistoryEntry[]> {
+  return loadHistory(limit, offset, "redis_command");
 }
 
 export async function clearHistory(): Promise<void> {
   return invoke("clear_history");
+}
+
+export async function clearRedisHistory(): Promise<void> {
+  const entries = await loadRedisHistory(1000, 0);
+  await Promise.all(entries.map((e) => deleteHistoryEntry(e.id)));
 }
 
 export async function deleteHistoryEntry(id: string): Promise<void> {
