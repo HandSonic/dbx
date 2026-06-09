@@ -2282,6 +2282,7 @@ async function onToolbarRefresh() {
   if (transactionActive.value) {
     discardChanges();
   }
+  preserveTransposeOnNextResult.value = showTranspose.value;
   emit(
     "reload",
     props.sql,
