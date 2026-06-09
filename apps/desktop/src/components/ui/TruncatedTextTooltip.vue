@@ -31,14 +31,7 @@ function isTooltipDisabled(): boolean {
 </script>
 
 <template>
-  <LightTooltip
-    :text="text"
-    :delay="delay"
-    :disabled="isTooltipDisabled"
-    :side="side"
-    :side-offset="sideOffset"
-    :open-on-focus="openOnFocus"
-  >
+  <LightTooltip :text="text" :delay="delay" :disabled="isTooltipDisabled" :side="side" :side-offset="sideOffset" :open-on-focus="openOnFocus">
     <span ref="textRef" :class="cn('truncate', props.class)">
       <slot>{{ text }}</slot>
     </span>

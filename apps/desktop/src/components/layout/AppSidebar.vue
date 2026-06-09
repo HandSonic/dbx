@@ -53,19 +53,10 @@ defineExpose({ focusSearch });
 </script>
 
 <template>
-  <div
-    class="h-full shrink-0 relative select-none"
-    :class="classicLayout ? '' : 'rounded-md border border-border/80 bg-background'"
-    :style="{ width: sidebarWidth + 'px' }"
-  >
+  <div class="h-full shrink-0 relative select-none" :class="classicLayout ? '' : 'rounded-md border border-border/80 bg-background'" :style="{ width: sidebarWidth + 'px' }">
     <div class="h-full flex flex-col overflow-hidden">
-      <div
-        class="flex items-center gap-px px-3 text-xs font-medium text-muted-foreground border-b bg-muted/20"
-        :class="classicLayout ? 'h-9' : 'h-10'"
-      >
-        <span class="flex self-stretch items-center truncate" data-tauri-drag-region>{{
-          t("sidebar.connections")
-        }}</span>
+      <div class="flex items-center gap-px px-3 text-xs font-medium text-muted-foreground border-b bg-muted/20" :class="classicLayout ? 'h-9' : 'h-10'">
+        <span class="flex self-stretch items-center truncate" data-tauri-drag-region>{{ t("sidebar.connections") }}</span>
         <span class="flex-1 self-stretch" data-tauri-drag-region />
         <Tooltip>
           <TooltipTrigger as-child>

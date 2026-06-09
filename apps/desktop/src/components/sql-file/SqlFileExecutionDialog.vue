@@ -13,16 +13,7 @@ import DatabaseIcon from "@/components/icons/DatabaseIcon.vue";
 import { useToast } from "@/composables/useToast";
 import { useConnectionStore } from "@/stores/connectionStore";
 import { databaseOptionsForConnection } from "@/composables/useDatabaseOptions";
-import {
-  cancelSqlFileExecution,
-  executeSqlFile,
-  listenSqlFileProgress,
-  listDatabases,
-  previewSqlFile,
-  type SqlFilePreview,
-  type SqlFileProgress,
-  type SqlFileStatus,
-} from "@/lib/api";
+import { cancelSqlFileExecution, executeSqlFile, listenSqlFileProgress, listDatabases, previewSqlFile, type SqlFilePreview, type SqlFileProgress, type SqlFileStatus } from "@/lib/api";
 import { Check, CheckSquare, FileCode, FolderOpen, Loader2, Play, Square, X } from "@lucide/vue";
 
 const { t } = useI18n();
@@ -58,22 +49,11 @@ const terminalStatus = ref<SqlFileStatus | "idle">("idle");
 const terminalError = ref("");
 const refreshedTarget = ref(false);
 
-const sqlConnections = computed(() =>
-  store.connections.filter((c) => !["redis", "mongodb", "elasticsearch", "etcd"].includes(c.db_type)),
-);
+const sqlConnections = computed(() => store.connections.filter((c) => !["redis", "mongodb", "elasticsearch", "etcd"].includes(c.db_type)));
 
 const selectedConnection = computed(() => sqlConnections.value.find((c) => c.id === connectionId.value));
 
-const canStart = computed(() =>
-  Boolean(
-    preview.value &&
-    selectedConnection.value &&
-    database.value.trim() &&
-    !running.value &&
-    !loadingPreview.value &&
-    !loadingDatabases.value,
-  ),
-);
+const canStart = computed(() => Boolean(preview.value && selectedConnection.value && database.value.trim() && !running.value && !loadingPreview.value && !loadingDatabases.value));
 
 const statusTone = computed(() => {
   if (terminalStatus.value === "done") return "text-green-600";
@@ -104,11 +84,7 @@ const previewIsTruncated = computed(() => {
   if (!preview.value) return false;
   return preview.value.sizeBytes > preview.value.preview.length;
 });
-const previewLineSummary = computed(() =>
-  previewIsTruncated.value
-    ? t("sqlFile.previewingFirstLines", { count: previewLineCount.value })
-    : t("sqlFile.previewingLines", { count: previewLineCount.value }),
-);
+const previewLineSummary = computed(() => (previewIsTruncated.value ? t("sqlFile.previewingFirstLines", { count: previewLineCount.value }) : t("sqlFile.previewingLines", { count: previewLineCount.value })));
 
 function connectionIconType(id: string) {
   const config = store.getConfig(id);
@@ -424,19 +400,8 @@ watch(
 
           <div class="flex items-center gap-2">
             <input ref="fileInput" type="file" accept=".sql,text/sql" class="hidden" @change="handleFileInputChange" />
-            <Input
-              :model-value="filePath"
-              readonly
-              class="h-8 text-xs font-mono"
-              :placeholder="t('sqlFile.selectSqlFile')"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              class="h-8 shrink-0"
-              :disabled="running || selectingFile"
-              @click="selectFile"
-            >
+            <Input :model-value="filePath" readonly class="h-8 text-xs font-mono" :placeholder="t('sqlFile.selectSqlFile')" />
+            <Button variant="outline" size="sm" class="h-8 shrink-0" :disabled="running || selectingFile" @click="selectFile">
               <Loader2 v-if="selectingFile || loadingPreview" class="w-3.5 h-3.5 mr-1.5 animate-spin" />
               <FolderOpen v-else class="w-3.5 h-3.5 mr-1.5" />
               {{ t("sqlFile.browse") }}
@@ -455,18 +420,11 @@ watch(
                 <span>{{ formatBytes(preview.sizeBytes) }}</span>
               </div>
             </div>
-            <div
-              class="sql-file-preview-viewer flex min-h-56 max-h-[min(42vh,360px)] max-w-full overflow-auto bg-muted/15 text-xs"
-            >
-              <div
-                class="sticky left-0 z-10 select-none border-r bg-background/95 px-2 py-3 text-right font-mono leading-5 text-muted-foreground/70"
-              >
+            <div class="sql-file-preview-viewer flex min-h-56 max-h-[min(42vh,360px)] max-w-full overflow-auto bg-muted/15 text-xs">
+              <div class="sticky left-0 z-10 select-none border-r bg-background/95 px-2 py-3 text-right font-mono leading-5 text-muted-foreground/70">
                 <div v-for="lineNumber in previewLineNumbers" :key="lineNumber">{{ lineNumber }}</div>
               </div>
-              <pre
-                class="min-w-max flex-1 p-3 font-mono leading-5 whitespace-pre"
-                v-html="highlight(preview.preview)"
-              ></pre>
+              <pre class="min-w-max flex-1 p-3 font-mono leading-5 whitespace-pre" v-html="highlight(preview.preview)"></pre>
             </div>
           </div>
         </div>
@@ -509,16 +467,8 @@ watch(
                 </SelectContent>
               </Select>
               <div v-else class="relative">
-                <Input
-                  v-model="database"
-                  class="h-8 text-xs"
-                  :disabled="running || loadingDatabases"
-                  :placeholder="t('sqlFile.databasePlaceholder')"
-                />
-                <Loader2
-                  v-if="loadingDatabases"
-                  class="absolute right-2 top-2 w-3.5 h-3.5 animate-spin text-muted-foreground"
-                />
+                <Input v-model="database" class="h-8 text-xs" :disabled="running || loadingDatabases" :placeholder="t('sqlFile.databasePlaceholder')" />
+                <Loader2 v-if="loadingDatabases" class="absolute right-2 top-2 w-3.5 h-3.5 animate-spin text-muted-foreground" />
               </div>
             </div>
           </div>
@@ -529,12 +479,7 @@ watch(
             {{ t("sqlFile.options") }}
           </div>
 
-          <button
-            type="button"
-            class="flex items-center gap-2 text-xs text-left"
-            :disabled="running"
-            @click="continueOnError = !continueOnError"
-          >
+          <button type="button" class="flex items-center gap-2 text-xs text-left" :disabled="running" @click="continueOnError = !continueOnError">
             <CheckSquare v-if="continueOnError" class="w-3.5 h-3.5 text-primary shrink-0" />
             <Square v-else class="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
             {{ t("sqlFile.continueOnError") }}
@@ -555,17 +500,7 @@ watch(
           </div>
 
           <div class="w-full bg-muted rounded-full h-2 overflow-hidden">
-            <div
-              class="h-full rounded-full transition-all duration-300"
-              :class="
-                terminalStatus === 'error'
-                  ? 'bg-destructive'
-                  : terminalStatus === 'cancelled'
-                    ? 'bg-yellow-500'
-                    : 'bg-primary'
-              "
-              :style="{ width: `${progressPercent}%` }"
-            />
+            <div class="h-full rounded-full transition-all duration-300" :class="terminalStatus === 'error' ? 'bg-destructive' : terminalStatus === 'cancelled' ? 'bg-yellow-500' : 'bg-primary'" :style="{ width: `${progressPercent}%` }" />
           </div>
 
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
@@ -595,17 +530,12 @@ watch(
 
           <div v-if="progress?.statementSummary" class="space-y-1">
             <Label class="text-xs">{{ t("sqlFile.currentStatement") }}</Label>
-            <div
-              class="max-h-20 max-w-full overflow-auto rounded-md border bg-muted/15 p-2 text-xs font-mono whitespace-pre"
-            >
+            <div class="max-h-20 max-w-full overflow-auto rounded-md border bg-muted/15 p-2 text-xs font-mono whitespace-pre">
               {{ progress.statementSummary }}
             </div>
           </div>
 
-          <div
-            v-if="progress?.error || terminalError"
-            class="max-w-full overflow-auto rounded-md border bg-destructive/5 p-2 text-xs text-destructive whitespace-pre-wrap"
-          >
+          <div v-if="progress?.error || terminalError" class="max-w-full overflow-auto rounded-md border bg-destructive/5 p-2 text-xs text-destructive whitespace-pre-wrap">
             {{ progress?.error || terminalError }}
           </div>
         </div>

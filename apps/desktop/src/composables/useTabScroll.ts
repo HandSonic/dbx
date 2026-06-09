@@ -68,10 +68,7 @@ export function useTabScroll(tabsContainerRef: Ref<HTMLElement | null>) {
 
     const thumbWidthPx = dragState.trackRect.width * (scrollThumbWidthPercent.value / 100);
     const maxThumbLeftPx = Math.max(1, dragState.trackRect.width - thumbWidthPx);
-    const thumbLeftPx = Math.min(
-      maxThumbLeftPx,
-      Math.max(0, clientX - dragState.trackRect.left - dragState.thumbOffsetPx),
-    );
+    const thumbLeftPx = Math.min(maxThumbLeftPx, Math.max(0, clientX - dragState.trackRect.left - dragState.thumbOffsetPx));
     el.scrollLeft = (thumbLeftPx / maxThumbLeftPx) * maxScrollLeft;
     updateScrollButtons();
   }

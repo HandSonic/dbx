@@ -105,9 +105,7 @@ export const useSavedSqlStore = defineStore("savedSql", () => {
   }
 
   function listFiles(connectionId: string, folderId?: string) {
-    return sortFilesByOrder(
-      files.value.filter((file) => file.connectionId === connectionId && (file.folderId || "") === (folderId || "")),
-    );
+    return sortFilesByOrder(files.value.filter((file) => file.connectionId === connectionId && (file.folderId || "") === (folderId || "")));
   }
 
   function getFile(id: string) {
@@ -148,15 +146,7 @@ export const useSavedSqlStore = defineStore("savedSql", () => {
     await syncToLocalDirectory();
   }
 
-  async function saveFile(input: {
-    id?: string;
-    connectionId: string;
-    folderId?: string;
-    name: string;
-    database: string;
-    schema?: string;
-    sql: string;
-  }) {
+  async function saveFile(input: { id?: string; connectionId: string; folderId?: string; name: string; database: string; schema?: string; sql: string }) {
     const timestamp = nowIso();
     const existing = input.id ? getFile(input.id) : undefined;
     const file: SavedSqlFile = existing
@@ -177,14 +167,7 @@ export const useSavedSqlStore = defineStore("savedSql", () => {
           database: input.database,
           schema: input.schema,
           sql: input.sql,
-          orderIndex:
-            maxOrderIndex(
-              files.value.filter(
-                (file) =>
-                  file.connectionId === input.connectionId &&
-                  (file.folderId || "") === (input.folderId || undefined || ""),
-              ),
-            ) + 1,
+          orderIndex: maxOrderIndex(files.value.filter((file) => file.connectionId === input.connectionId && (file.folderId || "") === (input.folderId || undefined || ""))) + 1,
           createdAt: timestamp,
           updatedAt: timestamp,
         };
@@ -241,9 +224,7 @@ export const useSavedSqlStore = defineStore("savedSql", () => {
     const targetDir = settingsStore.desktopSettings.saved_sql_sync_dir?.trim();
     if (!targetDir) return;
 
-    const syncPromise =
-      pendingSync?.catch(() => {}).then(() => api.syncSavedSqlDirectory({ targetDir, entries: syncEntries() })) ??
-      api.syncSavedSqlDirectory({ targetDir, entries: syncEntries() });
+    const syncPromise = pendingSync?.catch(() => {}).then(() => api.syncSavedSqlDirectory({ targetDir, entries: syncEntries() })) ?? api.syncSavedSqlDirectory({ targetDir, entries: syncEntries() });
     pendingSync = syncPromise;
     try {
       await syncPromise;
@@ -276,12 +257,8 @@ export const useSavedSqlStore = defineStore("savedSql", () => {
     if ((target.folderId || undefined) === targetFolderId) return;
 
     const timestamp = nowIso();
-    const sourceGroup = sortFilesByOrder(
-      files.value.filter((file) => (file.folderId || "") === (target.folderId || "")),
-    ).filter((file) => file.id !== fileId);
-    const destinationGroup = sortFilesByOrder(
-      files.value.filter((file) => file.id !== fileId && (file.folderId || "") === (targetFolderId || "")),
-    );
+    const sourceGroup = sortFilesByOrder(files.value.filter((file) => (file.folderId || "") === (target.folderId || ""))).filter((file) => file.id !== fileId);
+    const destinationGroup = sortFilesByOrder(files.value.filter((file) => file.id !== fileId && (file.folderId || "") === (targetFolderId || "")));
 
     const movedFile: SavedSqlFile = {
       ...target,
@@ -298,12 +275,7 @@ export const useSavedSqlStore = defineStore("savedSql", () => {
       updatedAt: timestamp,
     }));
 
-    const untouched = files.value.filter(
-      (file) =>
-        file.id !== fileId &&
-        (file.folderId || "") !== (target.folderId || "") &&
-        (file.folderId || "") !== (targetFolderId || ""),
-    );
+    const untouched = files.value.filter((file) => file.id !== fileId && (file.folderId || "") !== (target.folderId || "") && (file.folderId || "") !== (targetFolderId || ""));
 
     await persistFiles([...untouched, ...nextSource, ...nextDestination]);
   }
@@ -331,22 +303,9 @@ export const useSavedSqlStore = defineStore("savedSql", () => {
     }));
 
     const previousGroupId = dragged.folderId || undefined;
-    const sourceGroup =
-      previousGroupId === targetFolderId
-        ? []
-        : reindexFiles(
-            sortFilesByOrder(
-              files.value.filter((file) => file.id !== draggedId && (file.folderId || "") === (previousGroupId || "")),
-            ),
-            previousGroupId,
-          ).map((file) => ({ ...file, updatedAt: draggedNext.updatedAt }));
+    const sourceGroup = previousGroupId === targetFolderId ? [] : reindexFiles(sortFilesByOrder(files.value.filter((file) => file.id !== draggedId && (file.folderId || "") === (previousGroupId || ""))), previousGroupId).map((file) => ({ ...file, updatedAt: draggedNext.updatedAt }));
 
-    const untouched = files.value.filter(
-      (file) =>
-        file.id !== draggedId &&
-        (file.folderId || "") !== (targetFolderId || "") &&
-        (file.folderId || "") !== (previousGroupId || ""),
-    );
+    const untouched = files.value.filter((file) => file.id !== draggedId && (file.folderId || "") !== (targetFolderId || "") && (file.folderId || "") !== (previousGroupId || ""));
 
     await persistFiles([...untouched, ...sourceGroup, ...updatedGroup]);
   }

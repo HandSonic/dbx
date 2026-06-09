@@ -51,12 +51,10 @@ export default {
     availableMessage: "DBX {latest} is available. You are using {current}.",
     upToDate: "DBX is up to date ({version}).",
     failed: "Failed to check updates: {error}",
-    rateLimited:
-      "GitHub update checks are temporarily rate limited. You can still open the release page to check manually.",
+    rateLimited: "GitHub update checks are temporarily rate limited. You can still open the release page to check manually.",
     openRelease: "Open Release",
     downloadAndInstall: "Download & Install",
-    portableManualUpdate:
-      "Portable builds cannot use the in-app installer. Download the portable ZIP from the release page, then extract it over the current DBX folder to keep portable.dbx and data.",
+    portableManualUpdate: "Portable builds cannot use the in-app installer. Download the portable ZIP from the release page, then extract it over the current DBX folder to keep portable.dbx and data.",
     downloading: "Downloading {progress}%",
     downloadFailed: "Update download failed: {error}",
     restart: "Exit & Restart",
@@ -146,8 +144,7 @@ export default {
     memoryDatabasePathHint: "Use :memory: to create an in-memory SQLite or DuckDB database.",
     sqliteExtensions: "SQLite Extensions",
     sqliteExtensionsPlaceholder: "/path/to/regexp.dylib\n/path/to/text.dylib|sqlite3_text_init",
-    sqliteExtensionsHint:
-      "One .dylib/.so/.dll per line. Use “path|entry point” when an entry point is required. Loaded on connect, then load_extension is disabled.",
+    sqliteExtensionsHint: "One .dylib/.so/.dll per line. Use “path|entry point” when an entry point is required. Loaded on connect, then load_extension is disabled.",
     sqliteExtensionBrowse: "Select SQLite extension",
     user: "User",
     password: "Password",
@@ -194,14 +191,12 @@ export default {
     postgresSslModeVerifyFull: "Verify Full",
     postgresServerCert: "Server CA",
     postgresRootCertPlaceholder: "/path/to/ca.crt",
-    postgresRootCertHint:
-      "Use this for verify-ca or verify-full when the server certificate is signed by a private CA.",
+    postgresRootCertHint: "Use this for verify-ca or verify-full when the server certificate is signed by a private CA.",
     postgresRootCertBrowse: "Choose CA certificate",
     postgresClientCert: "Client Auth",
     postgresClientCertPlaceholder: "/path/to/client.crt",
     postgresClientKeyPlaceholder: "/path/to/client.key",
-    postgresClientCertHint:
-      "Client certificate and private key must be provided together when PostgreSQL requires mTLS.",
+    postgresClientCertHint: "Client certificate and private key must be provided together when PostgreSQL requires mTLS.",
     postgresClientCertBrowse: "Choose client certificate",
     postgresClientKeyBrowse: "Choose client private key",
     connectionUrlOptional: "URL (optional)",
@@ -257,8 +252,7 @@ export default {
     connectFailed: "Connection failed: {message}",
     driverNotInstalled: "{driver} driver is not installed. Please install it from the Driver Manager.",
     jreNotInstalled: "JRE {jre} runtime is not installed. Please install it from the Driver Manager.",
-    systemJavaNotFound:
-      "System Java runtime was not found on PATH. Please install Java or choose a custom Java executable.",
+    systemJavaNotFound: "System Java runtime was not found on PATH. Please install Java or choose a custom Java executable.",
     customJavaPathEmpty: "Custom Java runtime path is empty. Please choose a Java executable.",
     jdbcPluginNotInstalled: "JDBC plugin is not installed. Install the optional JDBC plugin to use this connection.",
     lastError: "Connection error",
@@ -322,8 +316,7 @@ export default {
     jdbcPluginHint: "Install the DBX JDBC plugin first, then import the database vendor's JDBC driver JAR.",
     dmCompatHint: "Requires DM8 ODBC driver installed on your system.",
     dmDownload: "Download from Dameng",
-    mongoLegacyHint:
-      "MongoDB below 4.2 requires the MongoDB (Legacy) driver. If authentication fails and the user was created in admin, set Auth DB to admin.",
+    mongoLegacyHint: "MongoDB below 4.2 requires the MongoDB (Legacy) driver. If authentication fails and the user was created in admin, set Auth DB to admin.",
     compatible: "Compatible",
     mainstream: "Popular",
     color: "Color",
@@ -551,8 +544,7 @@ export default {
     formatterCustomName: "Template name",
     formatterCustomNamePlaceholder: "Example: User label",
     formatterCustomTemplateInput: "Template",
-    formatterCustomTemplateHint:
-      "Available variables: ${value}, ${upper}, ${lower}, ${length}. Give it a name to save it to the list.",
+    formatterCustomTemplateHint: "Available variables: ${value}, ${upper}, ${lower}, ${length}. Give it a name to save it to the list.",
     formatterPreview: "Preview",
     saveFormatter: "Save",
     clearFormatter: "Clear",
@@ -688,8 +680,7 @@ export default {
     transposeMultiRowToggle: "Multi-row",
     transposeSingleRow: "Current row",
     transposeMultiRow: "Multi-row",
-    transposeMultiRowHint:
-      "When enabled, transpose view shows multiple rows. When disabled, it only shows the current row.",
+    transposeMultiRowHint: "When enabled, transpose view shows multiple rows. When disabled, it only shows the current row.",
     rowsPerPageShort: " rows",
     columnDetails: "Column Details",
     tableInfo: "Table Info",
@@ -709,29 +700,23 @@ export default {
     commit: "Commit",
     rollback: "Rollback",
     transactionSaveHint: "Commit {count} pending change(s) in a transaction.",
-    nonTransactionalSaveHint:
-      "Save {count} pending change(s) one by one. If one fails, earlier successful changes will not be rolled back.",
+    nonTransactionalSaveHint: "Save {count} pending change(s) one by one. If one fails, earlier successful changes will not be rolled back.",
     keylessEditWarning: "No primary key",
-    keylessEditWarningHint:
-      "This table has no primary key. Updates and deletes use all original row values in the WHERE clause; exact duplicate rows may be affected together.",
+    keylessEditWarningHint: "This table has no primary key. Updates and deletes use all original row values in the WHERE clause; exact duplicate rows may be affected together.",
     queryEditReady: "Editable",
-    queryEditReadyHint:
-      "This single-table result comes from “{table}”. You can edit, delete, or add rows, then use the pending-changes action to save.",
+    queryEditReadyHint: "This single-table result comes from “{table}”. You can edit, delete, or add rows, then use the pending-changes action to save.",
     queryEditReadOnly: "Read-only result",
     queryEditUnsupported: {
       "not-select": "Only SELECT query results can be edited directly.",
       cte: "Queries with WITH/CTE are not editable yet. Use a simple single-table SELECT.",
       "set-operation": "UNION, INTERSECT, or EXCEPT results cannot be mapped safely back to source rows.",
       aggregation: "DISTINCT, GROUP BY, HAVING, and aggregate results cannot be edited directly.",
-      "external-source":
-        "External files and table-function results cannot be written back directly. Import them into a database table before editing.",
+      "external-source": "External files and table-function results cannot be written back directly. Import them into a database table before editing.",
       "complex-source": "JOINs, multiple tables, and subqueries cannot be mapped safely to one source row.",
-      "computed-columns":
-        "Computed expressions or function results cannot be written back. Select raw column names instead.",
+      "computed-columns": "Computed expressions or function results cannot be written back. Select raw column names instead.",
       "no-table": "No editable source table was detected.",
       "no-primary-key": "The target table has no primary key, so rows cannot be updated or deleted safely.",
-      "primary-key-not-returned":
-        "The result is missing the raw primary key column. Include it by its original column name.",
+      "primary-key-not-returned": "The result is missing the raw primary key column. Include it by its original column name.",
       "aliased-columns": "Result columns use aliases or expressions. Select editable columns by their original names.",
       "metadata-unavailable": "DBX could not load table metadata, so result editing is disabled.",
     },
@@ -773,8 +758,7 @@ export default {
     tipExecute: "to execute query",
     fileOpened: "Opened {name}",
     mcpTitle: "AI Agent Integration",
-    mcpDescription:
-      "Beyond the built-in AI assistant, you can also use Claude Code, Cursor, and other coding agents to query your databases via MCP.",
+    mcpDescription: "Beyond the built-in AI assistant, you can also use Claude Code, Cursor, and other coding agents to query your databases via MCP.",
     mcpLearnMore: "Learn more",
   },
   common: {
@@ -830,13 +814,10 @@ export default {
       foreignKeyIncoming: "{target} points to the current field through a foreign key. This is a verified dependency.",
       foreignKeyOutgoing: "The current field references {target} through a foreign key. This is a verified dependency.",
       viewLikely: "The view definition mentions both the target table and field, usually indicating query dependency.",
-      viewPossible:
-        "The view definition mentions a same-name field but not the target table, so it needs confirmation.",
-      historyLikely:
-        "A historical SQL statement mentions both the target table and field. Use it as impact-analysis context.",
+      viewPossible: "The view definition mentions a same-name field but not the target table, so it needs confirmation.",
+      historyLikely: "A historical SQL statement mentions both the target table and field. Use it as impact-analysis context.",
       historyPossible: "A historical SQL statement mentions a same-name field. It may be related but needs context.",
-      sameName:
-        "Another table has a same-name field. This may share business meaning but is not a verified database dependency.",
+      sameName: "Another table has a same-name field. This may share business meaning but is not a verified database dependency.",
     },
     cancel: "Cancel",
     refresh: "Analyze Again",
@@ -877,8 +858,7 @@ export default {
   configExport: {
     passphraseTitle: "Encrypt & Export",
     passphraseImportTitle: "Decrypt & Import",
-    passphraseExportHint:
-      "To include connection passwords in the export, set a passphrase for encryption. You will need the same passphrase to import.",
+    passphraseExportHint: "To include connection passwords in the export, set a passphrase for encryption. You will need the same passphrase to import.",
     passphraseImportHint: "This file is encrypted. Enter the passphrase to decrypt and import.",
     passphrase: "Passphrase",
     passphraseConfirm: "Confirm Passphrase",
@@ -890,15 +870,12 @@ export default {
     exportEncrypted: "Export",
     decryptImport: "Decrypt & Import",
     wrongPassphrase: "Wrong passphrase or corrupted file",
-    cryptoUnavailable:
-      "Encrypted config import is unavailable in this browser context. Use HTTPS, localhost, or DBX Desktop.",
+    cryptoUnavailable: "Encrypted config import is unavailable in this browser context. Use HTTPS, localhost, or DBX Desktop.",
     exportSuccess: "Connections exported successfully",
     importSuccess: "Imported {count} connection(s)",
-    importNavicatSuccess:
-      "Imported {count} Navicat connection(s). Fill in any connection whose password is still empty before testing.",
+    importNavicatSuccess: "Imported {count} Navicat connection(s). Fill in any connection whose password is still empty before testing.",
     importDatagripSuccess: "Imported {count} DataGrip connection(s), filled {filled} password(s) from macOS Keychain.",
-    importDbeaverSuccess:
-      "Imported {count} DBeaver connection(s). Fill in any connection whose password is still empty before testing.",
+    importDbeaverSuccess: "Imported {count} DBeaver connection(s). Fill in any connection whose password is still empty before testing.",
     importNone: "No new connections to import",
     importLayoutConfirm: "The imported file contains connection groups. Apply them?",
     importLayoutTitle: "Import Groups",
@@ -984,8 +961,7 @@ export default {
     enableThinking: "Thinking",
     enableThinkingOn: "Enabled",
     enableThinkingOff: "Disabled",
-    enableThinkingHint:
-      "This option only takes effect on /chat/completions APIs and supported models. When disabled, it can significantly reduce token usage, but the quality of generated results may decrease slightly.",
+    enableThinkingHint: "This option only takes effect on /chat/completions APIs and supported models. When disabled, it can significantly reduce token usage, but the quality of generated results may decrease slightly.",
     actions: {
       generate: "Generate SQL",
       explain: "Explain SQL",
@@ -1011,8 +987,7 @@ export default {
     deleteSelectedConnections: "Delete Selected {count} Connections",
     confirmDeleteTitle: "Delete Connection",
     confirmDeleteMessage: 'Are you sure you want to delete "{name}"? This cannot be undone.',
-    confirmDeleteSelectedMessage:
-      "Are you sure you want to delete the selected {count} connections? This cannot be undone.",
+    confirmDeleteSelectedMessage: "Are you sure you want to delete the selected {count} connections? This cannot be undone.",
     editConnection: "Edit Connection",
     selectVisibleDatabases: "Select Visible Databases",
     userAdmin: "Users & Privileges",
@@ -1073,8 +1048,7 @@ export default {
     renameObjectNamePlaceholder: "New name",
     renameObjectSuccess: '"{oldName}" renamed to "{newName}"',
     confirmDropTableTitle: "Drop Table",
-    confirmDropTableMessage:
-      'Are you sure you want to drop "{name}"? This will permanently delete the table and all its data.',
+    confirmDropTableMessage: 'Are you sure you want to drop "{name}"? This will permanently delete the table and all its data.',
     confirmEmptyTableTitle: "Empty Table",
     confirmEmptyTableMessage: 'Are you sure you want to delete all data from "{name}"?',
     confirmTruncateTableTitle: "Truncate Table",
@@ -1094,8 +1068,7 @@ export default {
     confirmExecuteProcedureTitle: "Execute Procedure",
     confirmExecuteProcedureMessage: 'Execute procedure "{name}"? You can fill or adjust parameter values first.',
     loadingProcedureParameters: "Loading parameters...",
-    procedureParametersUnavailable:
-      "Could not load parameter metadata. You can still edit the SQL below and execute it.",
+    procedureParametersUnavailable: "Could not load parameter metadata. You can still edit the SQL below and execute it.",
     noProcedureParameters: "No parameters were found. The current SQL will be executed as shown.",
     inputParameters: "{count} input parameters",
     outputParameters: "{count} output parameters",
@@ -1105,8 +1078,7 @@ export default {
     parameterValue: "Value",
     parameterNull: "NULL",
     parameterDefault: "DEFAULT",
-    parameterDefaultHint:
-      "When DEFAULT is checked, DBX omits that argument so the database uses the procedure default.",
+    parameterDefaultHint: "When DEFAULT is checked, DBX omits that argument so the database uses the procedure default.",
     parameterValuePlaceholder: "Enter value",
     outputOnly: "Output only",
     sqlPreview: "SQL Preview",
@@ -1144,8 +1116,7 @@ export default {
     createDuckDbFile: "Create Database File",
     dropDatabase: "Drop Database",
     confirmDropDatabaseTitle: "Drop Database",
-    confirmDropDatabaseMessage:
-      'Are you sure you want to drop database "{name}"? This will permanently delete the database and all its data.',
+    confirmDropDatabaseMessage: 'Are you sure you want to drop database "{name}"? This will permanently delete the database and all its data.',
     createDatabaseSuccess: 'Database "{name}" created',
     createDuckDbFileSuccess: 'DuckDB database file "{name}" created and attached',
     createDuckDbFileDesktopOnly: "Creating DuckDB database files is only available in the desktop app",
@@ -1158,8 +1129,7 @@ export default {
     createSchema: "Create Schema",
     dropSchema: "Drop Schema",
     confirmDropSchemaTitle: "Drop Schema",
-    confirmDropSchemaMessage:
-      'Are you sure you want to drop schema "{name}"? This will permanently delete the schema and all its objects.',
+    confirmDropSchemaMessage: 'Are you sure you want to drop schema "{name}"? This will permanently delete the schema and all its objects.',
     createSchemaSuccess: 'Schema "{name}" created',
     dropSchemaSuccess: 'Schema "{name}" dropped',
     createSchemaNamePlaceholder: "Schema name",
@@ -1196,8 +1166,7 @@ export default {
   },
   userAdmin: {
     title: "Users & Privileges",
-    unsupported:
-      "MySQL-compatible and PostgreSQL-compatible connections are supported. SQL Server, Oracle, and other permission models can be added next.",
+    unsupported: "MySQL-compatible and PostgreSQL-compatible connections are supported. SQL Server, Oracle, and other permission models can be added next.",
     newUser: "New User",
     anonymous: "Anonymous",
     roleName: "Role name",
@@ -1210,8 +1179,7 @@ export default {
     grants: "Grants",
     noGrants: "No grants found",
     privilegeEditor: "Privilege Editor",
-    privilegeHint:
-      "Choose privileges, database, and table, then preview SQL before applying. * means global or all tables.",
+    privilegeHint: "Choose privileges, database, and table, then preview SQL before applying. * means global or all tables.",
     database: "Database",
     schema: "Schema",
     table: "Table",
@@ -1421,8 +1389,7 @@ export default {
     columnValue: "Value",
     columnSize: "Size",
     columnTTL: "TTL",
-    binaryStringReadonlyHint:
-      "Binary string values are shown as escaped text in read-only mode; editing raw bytes is not supported.",
+    binaryStringReadonlyHint: "Binary string values are shown as escaped text in read-only mode; editing raw bytes is not supported.",
     selectedKeys: "Selected keys",
     deleteGroup: "Delete group",
     deleteGroupDetails: "{target}\n{count} keys",
@@ -1569,8 +1536,7 @@ export default {
     deleteMessage: "This delete operation may be irreversible. Continue?",
     deleteConfirm: "Confirm Delete",
     deleteRowMessage: "This row will be marked for deletion and removed from the database after saving. Continue?",
-    deleteRowsMessage:
-      "These {count} rows will be marked for deletion and removed from the database after saving. Continue?",
+    deleteRowsMessage: "These {count} rows will be marked for deletion and removed from the database after saving. Continue?",
     deleteRowDetails: "Table: {table}",
     deleteRowDetailsNoTable: "Current result row",
     redisKeyDetails: "Redis key: {key}",
@@ -1719,14 +1685,12 @@ export default {
     missingTargetTables: "Missing same-name target tables: {tables}",
     keyColumns: "Key Columns",
     keyColumnsPlaceholder: "Comma-separated primary or unique columns",
-    keyColumnsAutoHint:
-      "Leave blank to auto-detect primary keys for single-table compare, or per table in batch compare.",
+    keyColumnsAutoHint: "Leave blank to auto-detect primary keys for single-table compare, or per table in batch compare.",
     rowCounts: "Source {source} rows, target {target} rows; full compare completed",
     previewLimitOption: "Preview {count}",
     compare: "Compare Data",
     summary: "Added {added}, removed {removed}, modified {modified}",
-    batchSummary:
-      "Compared {tables} tables: {different} different, {same} identical, {failed} failed; added {added}, removed {removed}, modified {modified}",
+    batchSummary: "Compared {tables} tables: {different} different, {same} identical, {failed} failed; added {added}, removed {removed}, modified {modified}",
     comparingTable: "Comparing {current}/{total}: {table}",
     keyColumnsInline: "Key columns: {columns}",
     selectedInline: "Selected {selected}/{total}",
@@ -1817,8 +1781,7 @@ export default {
     languageTitle: "Language / 语言",
     fontSize: "Font Size",
     uiScale: "UI Scale",
-    uiScaleDescription:
-      "Scale the entire desktop UI for high-DPI displays. Changes apply immediately and are restored on next launch.",
+    uiScaleDescription: "Scale the entire desktop UI for high-DPI displays. Changes apply immediately and are restored on next launch.",
     theme: "Theme",
     selectTheme: "Select theme...",
     followAppTheme: "Follow app theme",
@@ -1833,14 +1796,11 @@ export default {
     iconThemeBlack: "Black",
     iconThemeBlackDescription: "Use the black DBX mark for the window, tray, and logo.",
     showTrayIcon: "Show tray/menu bar icon",
-    showTrayIconDescription:
-      "When disabled, no icon is shown, but closing the window still hides DBX in the background as before.",
+    showTrayIconDescription: "When disabled, no icon is shown, but closing the window still hides DBX in the background as before.",
     updateNotificationsEnabled: "Enable update reminders",
-    updateNotificationsEnabledDescription:
-      "When disabled, DBX will not automatically check app or driver updates or show update badges. Manual checks are still available.",
+    updateNotificationsEnabledDescription: "When disabled, DBX will not automatically check app or driver updates or show update badges. Manual checks are still available.",
     debugLoggingEnabled: "Enable debug logs",
-    debugLoggingEnabledDescription:
-      "Record more detailed local user-side diagnostic logs while troubleshooting reports. Disabled by default.",
+    debugLoggingEnabledDescription: "Record more detailed local user-side diagnostic logs while troubleshooting reports. Disabled by default.",
     debugLogsCopy: "Copy logs",
     debugLogsCopied: "Copied",
     debugLogsDownload: "Download logs",
@@ -1852,8 +1812,7 @@ export default {
     showColumnTypesInHeader: "Show column types under names",
     showColumnTypesInHeaderDescription: "Display each column's data type directly below grid column names.",
     compactColumnHeaderActions: "Compact column header tools",
-    compactColumnHeaderActionsDescription:
-      "Move formatter and local filter tools into a more menu so column names get priority.",
+    compactColumnHeaderActionsDescription: "Move formatter and local filter tools into a more menu so column names get priority.",
     sidebarActivation: "Sidebar activation",
     sidebarActivationSingle: "Single click",
     sidebarActivationSingleDescription: "Open actionable sidebar items with one click.",
@@ -1861,38 +1820,28 @@ export default {
     sidebarActivationDoubleDescription: "Single click selects rows; double click opens items.",
     sidebarObjectDisplay: "Sidebar object layout",
     sidebarObjectDisplayGrouped: "Advanced view",
-    sidebarObjectDisplayGroupedDescription:
-      "Group objects by tables, views, procedures, and functions for databases with more object types.",
+    sidebarObjectDisplayGroupedDescription: "Group objects by tables, views, procedures, and functions for databases with more object types.",
     sidebarObjectDisplaySimple: "Simple view",
-    sidebarObjectDisplaySimpleDescription:
-      "List tables and views directly under each database or schema to reduce intermediate levels.",
+    sidebarObjectDisplaySimpleDescription: "List tables and views directly under each database or schema to reduce intermediate levels.",
     autoSelectActiveSidebarNode: "Always select opened item",
-    autoSelectActiveSidebarNodeDescription:
-      "When switching tabs, select the matching visible table, collection, or SQL file in the sidebar.",
+    autoSelectActiveSidebarNodeDescription: "When switching tabs, select the matching visible table, collection, or SQL file in the sidebar.",
     disconnectTabHandlingMode: "Tabs after disconnect",
-    disconnectTabHandlingModeDescription:
-      "Choose how related tabs should be handled after closing a connection or database.",
+    disconnectTabHandlingModeDescription: "Choose how related tabs should be handled after closing a connection or database.",
     disconnectTabHandlingModeCloseTabs: "Close all tabs",
     disconnectTabHandlingModeCloseTabsDescription: "Close all related tabs for the connection or database.",
     disconnectTabHandlingModeKeepTabsClearResults: "Close object tabs, keep SQL tabs",
-    disconnectTabHandlingModeKeepTabsClearResultsDescription:
-      "Close table data, object browser, and structure tabs while keeping SQL query tabs and SQL text, and also clear execution state and result sessions.",
+    disconnectTabHandlingModeKeepTabsClearResultsDescription: "Close table data, object browser, and structure tabs while keeping SQL query tabs and SQL text, and also clear execution state and result sessions.",
     disconnectTabHandlingModeKeepTabsKeepResults: "Do not close related tabs",
-    disconnectTabHandlingModeKeepTabsKeepResultsDescription:
-      "Keep related tabs, SQL text, and current results without extra cleanup.",
+    disconnectTabHandlingModeKeepTabsKeepResultsDescription: "Keep related tabs, SQL text, and current results without extra cleanup.",
     reuseDataTab: "Reuse data tab",
-    reuseDataTabDescription:
-      "When clicking a table in the sidebar, reuse the existing data tab instead of creating a new one each time.",
+    reuseDataTabDescription: "When clicking a table in the sidebar, reuse the existing data tab instead of creating a new one each time.",
     sidebarHiddenTablePrefixes: "Hidden table name prefixes",
-    sidebarHiddenTablePrefixesDescription:
-      "One prefix per line. Only sidebar table, view, and collection labels are shortened; tooltips and actions still use the full name.",
+    sidebarHiddenTablePrefixesDescription: "One prefix per line. Only sidebar table, view, and collection labels are shortened; tooltips and actions still use the full name.",
     sidebarHiddenTablePrefixesPlaceholder: "Example:\nODS_\nT8Y2_LONG_",
     sidebarHideTableComments: "Hide table comments in sidebar",
-    sidebarHideTableCommentsDescription:
-      "Hide the inline table/view comments shown next to names in the sidebar tree to save horizontal space.",
+    sidebarHideTableCommentsDescription: "Hide the inline table/view comments shown next to names in the sidebar tree to save horizontal space.",
     sidebarAllowHorizontalScroll: "Allow sidebar horizontal scroll",
-    sidebarAllowHorizontalScrollDescription:
-      "Show long table, view, and collection names in full by allowing horizontal sidebar scrolling.",
+    sidebarAllowHorizontalScrollDescription: "Show long table, view, and collection names in full by allowing horizontal sidebar scrolling.",
     snippetsDescription: "Customize SQL snippet templates triggered in the editor.",
     snippetsAdd: "Add Snippet",
     snippetsLabel: "Label",
@@ -1913,18 +1862,14 @@ export default {
     syncClearSavedPassword: "Clear saved password",
     syncRememberWebDavPassword: "Remember WebDAV app password",
     syncSavedPassword: "(saved)",
-    syncRememberWebDavPasswordDescription:
-      "The password is encrypted and stored on this device only. It is not synced to WebDAV and does not replace the sync password.",
+    syncRememberWebDavPasswordDescription: "The password is encrypted and stored on this device only. It is not synced to WebDAV and does not replace the sync password.",
     syncRemotePath: "Remote snapshot path",
     syncRemotePathDescription: "DBX will create missing parent folders when uploading.",
-    syncSecretNotice:
-      "By default, DBX syncs connection details and settings only. Database passwords, SSH passwords, proxy passwords, connection strings, and AI API keys stay local.",
+    syncSecretNotice: "By default, DBX syncs connection details and settings only. Database passwords, SSH passwords, proxy passwords, connection strings, and AI API keys stay local.",
     syncSecrets: "Sync encrypted secrets",
-    syncSecretsDescription:
-      "When enabled, DBX encrypts database passwords, SSH passwords, and AI API keys before uploading them to WebDAV.",
+    syncSecretsDescription: "When enabled, DBX encrypts database passwords, SSH passwords, and AI API keys before uploading them to WebDAV.",
     syncSecretsPassphrase: "Sync password",
-    syncSecretsPassphraseDescription:
-      "This password is only used to encrypt and restore sensitive data. DBX does not save it; enter it again on each device.",
+    syncSecretsPassphraseDescription: "This password is only used to encrypt and restore sensitive data. DBX does not save it; enter it again on each device.",
     syncTest: "Test",
     syncUpload: "Upload",
     syncDownload: "Download",
@@ -1946,8 +1891,7 @@ export default {
     wordWrap: "Word wrap",
     wordWrapDescription: "Wrap long SQL lines within the editor width",
     confirmDangerousSqlExecution: "Confirm before dangerous SQL",
-    confirmDangerousSqlExecutionDescription:
-      "When disabled, ALTER, DROP, DELETE, TRUNCATE, and other dangerous SQL run without the warning dialog.",
+    confirmDangerousSqlExecutionDescription: "When disabled, ALTER, DROP, DELETE, TRUNCATE, and other dangerous SQL run without the warning dialog.",
     redisScanPageSize: "Redis scan count",
     redisScanPageSizeDescription: "Keys requested per Redis SCAN page when browsing keys.",
     redisScanPageSizeOption: "{count} keys",
@@ -2050,8 +1994,7 @@ export default {
     mcpReadonlyMode: "Read-only mode",
     mcpReadonlyModeDescription: "Adds DBX_MCP_ALLOW_WRITES=0 to the sample config so the MCP session stays query-only.",
     mcpAllowDangerous: "Allow dangerous SQL",
-    mcpAllowDangerousDescription:
-      "Adds DBX_MCP_ALLOW_DANGEROUS_SQL=1 to the sample config so DROP, TRUNCATE, ALTER, and similar statements are allowed.",
+    mcpAllowDangerousDescription: "Adds DBX_MCP_ALLOW_DANGEROUS_SQL=1 to the sample config so DROP, TRUNCATE, ALTER, and similar statements are allowed.",
     mcpDetectionTiming: "DBX checks automatically when this page opens; use Check again to refresh.",
     mcpNpmBoundary: "DBX only checks and explains MCP status; installation and upgrades still run through npm.",
     mcpRefresh: "Check again",
@@ -2077,8 +2020,7 @@ export default {
     usageAgentDrivers: "Built-in driver agents",
     usageJdbcPlugin: "JDBC plugin",
     usageJdbcDriverJars: "JDBC driver JARs",
-    offlineDownloadHint:
-      "For air-gapped environments, download offline driver packages on an internet-connected machine, then import them here.",
+    offlineDownloadHint: "For air-gapped environments, download offline driver packages on an internet-connected machine, then import them here.",
     offlineDownloadLink: "Offline driver downloads",
     searchDrivers: "Search driver name, type, version...",
     searchJdbcDrivers: "Search JDBC driver name or path...",

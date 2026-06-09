@@ -1,11 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import {
-  buildDraftVisibleDatabasesConnectionId,
-  connectionCanChooseVisibleDatabases,
-  visibleDatabaseSelectionIsStale,
-  initialVisibleDatabaseSelection,
-} from "../../apps/desktop/src/lib/connectionVisibleDatabases.ts";
+import { buildDraftVisibleDatabasesConnectionId, connectionCanChooseVisibleDatabases, visibleDatabaseSelectionIsStale, initialVisibleDatabaseSelection } from "../../apps/desktop/src/lib/connectionVisibleDatabases.ts";
 import type { ConnectionConfig } from "../../apps/desktop/src/types/database.ts";
 
 function config(overrides: Partial<ConnectionConfig> = {}): ConnectionConfig {
@@ -55,9 +50,7 @@ test("visible databases can be chosen for catalog-like connections only", () => 
 });
 
 test("initial selection uses configured visible databases when available", () => {
-  assert.deepEqual(initialVisibleDatabaseSelection(["app", "analytics", "billing"], ["billing", "missing"]), [
-    "billing",
-  ]);
+  assert.deepEqual(initialVisibleDatabaseSelection(["app", "analytics", "billing"], ["billing", "missing"]), ["billing"]);
 });
 
 test("initial selection uses default visible database names when no filter is configured", () => {

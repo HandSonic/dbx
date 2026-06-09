@@ -107,10 +107,7 @@ function getText(element: Element, tagName: string): string {
 
 function expandPathMacros(value: string): string {
   if (typeof window !== "undefined") {
-    const home =
-      (typeof process !== "undefined" && process.env?.HOME) ||
-      (typeof process !== "undefined" && process.env?.USERPROFILE) ||
-      "";
+    const home = (typeof process !== "undefined" && process.env?.HOME) || (typeof process !== "undefined" && process.env?.USERPROFILE) || "";
     if (home) return value.replace(/\$USER_HOME\$/g, home);
   }
   return value.replace(/\$USER_HOME\$/g, "~");
@@ -325,10 +322,7 @@ function parseDataSourcesLocalXml(xml: string): Map<string, Partial<DataSourceFr
   return result;
 }
 
-function mergeFragments(
-  shared: Map<string, Partial<DataSourceFragment>>,
-  local: Map<string, Partial<DataSourceFragment>>,
-): DataSourceFragment[] {
+function mergeFragments(shared: Map<string, Partial<DataSourceFragment>>, local: Map<string, Partial<DataSourceFragment>>): DataSourceFragment[] {
   const merged = new Map<string, Partial<DataSourceFragment>>();
 
   // Shared first (has driver-ref, jdbc-url, group-name)
@@ -399,8 +393,7 @@ function buildConnection(fragment: DataSourceFragment): ConnectionConfig {
     query_timeout_secs: 30,
     ssl: false,
     oracle_connection_type: profile.dbType === "oracle" ? parsed.oracleConnectionType || "service_name" : undefined,
-    connection_string:
-      profile.dbType === "jdbc" || profile.dbType === "mongodb" ? fragment.jdbcUrl.replace(/^jdbc:/i, "") : undefined,
+    connection_string: profile.dbType === "jdbc" || profile.dbType === "mongodb" ? fragment.jdbcUrl.replace(/^jdbc:/i, "") : undefined,
     jdbc_driver_class: profile.dbType === "jdbc" ? fragment.driverClass || undefined : undefined,
     jdbc_driver_paths: [],
   };
@@ -448,12 +441,7 @@ export function getDataGripUuidMap(payload: DataGripImportPayload): Map<string, 
   const seen = new Set<string>();
 
   for (const fragment of fragments) {
-    const profile = inferProfile(
-      fragment.driverRef,
-      extractSubprotocol(fragment.jdbcUrl),
-      fragment.driverClass,
-      fragment.product,
-    );
+    const profile = inferProfile(fragment.driverRef, extractSubprotocol(fragment.jdbcUrl), fragment.driverClass, fragment.product);
     const parsed = parseJdbcUrl(fragment.jdbcUrl);
     const host = parsed.host || (profile.dbType === "sqlite" ? "" : "127.0.0.1");
     const port = parsed.port || profile.port;

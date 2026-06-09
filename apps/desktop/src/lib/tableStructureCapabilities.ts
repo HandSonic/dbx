@@ -1,15 +1,6 @@
 import type { DatabaseType } from "@/types/database";
 
-export type TableStructureDialect =
-  | "mysql"
-  | "postgres"
-  | "sqlite"
-  | "duckdb"
-  | "sqlserver"
-  | "oracle"
-  | "h2"
-  | "clickhouse"
-  | "unsupported";
+export type TableStructureDialect = "mysql" | "postgres" | "sqlite" | "duckdb" | "sqlserver" | "oracle" | "h2" | "clickhouse" | "unsupported";
 
 export interface TableStructureCapabilities {
   dialect: TableStructureDialect;

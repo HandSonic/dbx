@@ -54,8 +54,7 @@ export default {
     rateLimited: "GitHub 更新检查暂时触发频率限制。你仍然可以打开下载页手动查看。",
     openRelease: "打开下载页",
     downloadAndInstall: "下载并安装",
-    portableManualUpdate:
-      "便携版不能使用应用内安装器更新。请从 release 下载便携版 ZIP，并解压覆盖当前 DBX 目录，以保留 portable.dbx 和 data。",
+    portableManualUpdate: "便携版不能使用应用内安装器更新。请从 release 下载便携版 ZIP，并解压覆盖当前 DBX 目录，以保留 portable.dbx 和 data。",
     downloading: "下载中 {progress}%",
     downloadFailed: "更新下载失败：{error}",
     restart: "退出并重启",
@@ -146,8 +145,7 @@ export default {
     memoryDatabasePathHint: "输入 :memory: 可创建 SQLite 或 DuckDB 内存数据库。",
     sqliteExtensions: "SQLite 扩展库",
     sqliteExtensionsPlaceholder: "/path/to/regexp.dylib\n/path/to/text.dylib|sqlite3_text_init",
-    sqliteExtensionsHint:
-      "每行一个 .dylib/.so/.dll；需要入口函数时使用“路径|入口函数”。连接时加载，加载后会关闭 load_extension。",
+    sqliteExtensionsHint: "每行一个 .dylib/.so/.dll；需要入口函数时使用“路径|入口函数”。连接时加载，加载后会关闭 load_extension。",
     sqliteExtensionBrowse: "选择 SQLite 扩展库",
     user: "用户名",
     password: "密码",
@@ -319,8 +317,7 @@ export default {
     jdbcPluginHint: "先安装 DBX JDBC 插件，再导入数据库厂商提供的 JDBC 驱动 JAR。",
     dmCompatHint: "需要在系统上安装达梦 DM8 ODBC 驱动程序。",
     dmDownload: "前往达梦官网下载",
-    mongoLegacyHint:
-      "MongoDB 4.2 以下版本需安装 MongoDB (Legacy) 驱动。若账号创建在 admin 且认证失败，请将认证库设为 admin。",
+    mongoLegacyHint: "MongoDB 4.2 以下版本需安装 MongoDB (Legacy) 驱动。若账号创建在 admin 且认证失败，请将认证库设为 admin。",
     compatible: "兼容",
     mainstream: "主流",
     color: "颜色",
@@ -706,8 +703,7 @@ export default {
     transactionSaveHint: "在事务中提交 {count} 项待保存更改。",
     nonTransactionalSaveHint: "逐条保存 {count} 项更改；如果中途失败，前面已成功的更改不会回滚。",
     keylessEditWarning: "无主键定位",
-    keylessEditWarningHint:
-      "这张表没有主键。保存更新或删除时会使用整行原始值作为 WHERE 条件；如果存在完全重复的行，可能会影响多行。",
+    keylessEditWarningHint: "这张表没有主键。保存更新或删除时会使用整行原始值作为 WHERE 条件；如果存在完全重复的行，可能会影响多行。",
     queryEditReady: "可编辑",
     queryEditReadyHint: "这是来自“{table}”的单表结果，可直接修改、删除或新增行，最后点击待保存按钮保存。",
     queryEditReadOnly: "只读结果",
@@ -750,8 +746,7 @@ export default {
   },
   welcome: {
     title: "数据库工作台",
-    subtitle:
-      "选择左侧连接开始浏览结构，或直接创建查询标签页。DBX 支持多种数据库、查询历史、数据表格编辑和 AI SQL 助手。",
+    subtitle: "选择左侧连接开始浏览结构，或直接创建查询标签页。DBX 支持多种数据库、查询历史、数据表格编辑和 AI SQL 助手。",
     connections: "连接",
     connected: "已连接",
     databaseTypes: "数据库类型",
@@ -965,8 +960,7 @@ export default {
     enableThinking: "Thinking",
     enableThinkingOn: "已启用",
     enableThinkingOff: "已禁用",
-    enableThinkingHint:
-      "此选项仅对 /chat/completions API 且部分支持的模型生效。设为禁用后可大幅节省 token，但生成结果质量可能会略微下降。",
+    enableThinkingHint: "此选项仅对 /chat/completions API 且部分支持的模型生效。设为禁用后可大幅节省 token，但生成结果质量可能会略微下降。",
     actions: {
       generate: "生成 SQL",
       explain: "解释 SQL",
@@ -1695,8 +1689,7 @@ export default {
     previewLimitOption: "预览 {count}",
     compare: "开始比较数据",
     summary: "新增 {added} 行，删除 {removed} 行，修改 {modified} 行",
-    batchSummary:
-      "已比较 {tables} 张表：存在差异 {different} 张，一致 {same} 张，失败 {failed} 张；累计新增 {added} 行，删除 {removed} 行，修改 {modified} 行",
+    batchSummary: "已比较 {tables} 张表：存在差异 {different} 张，一致 {same} 张，失败 {failed} 张；累计新增 {added} 行，删除 {removed} 行，修改 {modified} 行",
     comparingTable: "正在比较 {current}/{total}：{table}",
     keyColumnsInline: "匹配字段：{columns}",
     selectedInline: "已选择 {selected}/{total}",
@@ -1804,8 +1797,7 @@ export default {
     showTrayIcon: "显示系统托盘/菜单栏图标",
     showTrayIconDescription: "关闭后不显示图标，但关闭窗口仍会像之前一样隐藏到后台。",
     updateNotificationsEnabled: "启用更新提醒",
-    updateNotificationsEnabledDescription:
-      "关闭后，DBX 不会自动检查应用和驱动更新，也不会显示更新红点；仍可手动检查更新。",
+    updateNotificationsEnabledDescription: "关闭后，DBX 不会自动检查应用和驱动更新，也不会显示更新红点；仍可手动检查更新。",
     debugLoggingEnabled: "启用调试日志",
     debugLoggingEnabledDescription: "开启后在本机记录更详细的用户侧诊断日志，反馈问题时可临时开启；默认关闭。",
     debugLogsCopy: "复制日志",
@@ -1837,15 +1829,13 @@ export default {
     disconnectTabHandlingModeCloseTabs: "关闭全部页签",
     disconnectTabHandlingModeCloseTabsDescription: "直接关闭对应连接或数据库下的全部相关页签。",
     disconnectTabHandlingModeKeepTabsClearResults: "关闭表格页签，保留 SQL 页签",
-    disconnectTabHandlingModeKeepTabsClearResultsDescription:
-      "关闭表数据、对象浏览和结构等页签，保留 SQL 查询页签和 SQL 文本，同时清理执行状态与结果会话。",
+    disconnectTabHandlingModeKeepTabsClearResultsDescription: "关闭表数据、对象浏览和结构等页签，保留 SQL 查询页签和 SQL 文本，同时清理执行状态与结果会话。",
     disconnectTabHandlingModeKeepTabsKeepResults: "不关闭相关页签",
     disconnectTabHandlingModeKeepTabsKeepResultsDescription: "保留相关页签、SQL 文本和当前结果，不做额外处理。",
     reuseDataTab: "复用数据标签页",
     reuseDataTabDescription: "单击侧边栏表名时，复用已有的数据标签页而不是创建新标签页，避免打开过多标签。",
     sidebarHiddenTablePrefixes: "隐藏表名前缀",
-    sidebarHiddenTablePrefixesDescription:
-      "每行一个前缀，仅影响侧边栏表、视图和集合的显示名称，悬浮提示和实际操作仍使用完整名称。",
+    sidebarHiddenTablePrefixesDescription: "每行一个前缀，仅影响侧边栏表、视图和集合的显示名称，悬浮提示和实际操作仍使用完整名称。",
     sidebarHiddenTablePrefixesPlaceholder: "例如：\nODS_\nT8Y2_LONG_",
     sidebarHideTableComments: "隐藏侧边栏表注释",
     sidebarHideTableCommentsDescription: "隐藏侧边栏中表名旁边显示的表/视图注释，以节省横向空间。",
@@ -2003,8 +1993,7 @@ export default {
     mcpReadonlyMode: "只读模式",
     mcpReadonlyModeDescription: "开启后会为示例配置附加 DBX_MCP_ALLOW_WRITES=0，MCP 会话只允许查询。",
     mcpAllowDangerous: "允许危险 SQL",
-    mcpAllowDangerousDescription:
-      "开启后会为示例配置附加 DBX_MCP_ALLOW_DANGEROUS_SQL=1，允许 DROP、TRUNCATE、ALTER 等语句。",
+    mcpAllowDangerousDescription: "开启后会为示例配置附加 DBX_MCP_ALLOW_DANGEROUS_SQL=1，允许 DROP、TRUNCATE、ALTER 等语句。",
     mcpDetectionTiming: "打开此页时会自动检测，点击重新检查可刷新。",
     mcpNpmBoundary: "DBX 只检测和提示 MCP 状态；安装与升级仍由 npm 完成。",
     mcpRefresh: "重新检查",

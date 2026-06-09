@@ -1,20 +1,6 @@
 import type { TreeNodeType } from "@/types/database";
 
-const leafTypes: Set<TreeNodeType> = new Set([
-  "column",
-  "index",
-  "fkey",
-  "trigger",
-  "procedure",
-  "function",
-  "package",
-  "package-body",
-  "object-browser",
-  "redis-db",
-  "mongo-collection",
-  "user-admin",
-  "saved-sql-file",
-]);
+const leafTypes: Set<TreeNodeType> = new Set(["column", "index", "fkey", "trigger", "procedure", "function", "package", "package-body", "object-browser", "redis-db", "mongo-collection", "user-admin", "saved-sql-file"]);
 
 const fullWidthLabelTypes: Set<TreeNodeType> = new Set(["table", "view", "mongo-collection"]);
 

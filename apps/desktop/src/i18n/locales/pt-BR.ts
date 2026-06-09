@@ -51,12 +51,10 @@ export default {
     availableMessage: "DBX {latest} está disponível. Você está usando {current}.",
     upToDate: "O DBX está atualizado ({version}).",
     failed: "Falha ao verificar atualizações: {error}",
-    rateLimited:
-      "As verificações de atualização do GitHub estão temporariamente limitadas. Você ainda pode abrir a página de lançamento para verificar manualmente.",
+    rateLimited: "As verificações de atualização do GitHub estão temporariamente limitadas. Você ainda pode abrir a página de lançamento para verificar manualmente.",
     openRelease: "Abrir Lançamento",
     downloadAndInstall: "Baixar e Instalar",
-    portableManualUpdate:
-      "Versões portáteis não podem usar o instalador interno. Baixe o ZIP portátil da página de lançamento e extraia-o sobre a pasta atual do DBX para manter o portable.dbx e os dados.",
+    portableManualUpdate: "Versões portáteis não podem usar o instalador interno. Baixe o ZIP portátil da página de lançamento e extraia-o sobre a pasta atual do DBX para manter o portable.dbx e os dados.",
     downloading: "Baixando {progress}%",
     downloadFailed: "Falha ao baixar a atualização: {error}",
     restart: "Sair e Reiniciar",
@@ -146,8 +144,7 @@ export default {
     memoryDatabasePathHint: "Use :memory: para criar um banco de dados SQLite ou DuckDB na memória.",
     sqliteExtensions: "Extensões SQLite",
     sqliteExtensionsPlaceholder: "/caminho/para/regexp.dylib\n/caminho/para/text.dylib|sqlite3_text_init",
-    sqliteExtensionsHint:
-      "Um .dylib/.so/.dll por linha. Use “caminho|ponto de entrada” quando um ponto de entrada for necessário. Carregado ao conectar, depois load_extension é desabilitado.",
+    sqliteExtensionsHint: "Um .dylib/.so/.dll por linha. Use “caminho|ponto de entrada” quando um ponto de entrada for necessário. Carregado ao conectar, depois load_extension é desabilitado.",
     sqliteExtensionBrowse: "Selecionar extensão SQLite",
     user: "Usuário",
     password: "Senha",
@@ -179,13 +176,11 @@ export default {
     mysqlTlsModeRequired: "Obrigatório",
     mysqlTlsModeVerifyCa: "Verificar CA",
     mysqlTlsModeVerifyIdentity: "Verificar Identidade",
-    mysqlCaCertHint:
-      "Necessário para Verificar CA e Verificar Identidade quando o certificado do servidor usa uma CA privada.",
+    mysqlCaCertHint: "Necessário para Verificar CA e Verificar Identidade quando o certificado do servidor usa uma CA privada.",
     mysqlClientCert: "Autenticação do Cliente",
     mysqlClientCertPlaceholder: "/caminho/para/client.crt",
     mysqlClientKeyPlaceholder: "/caminho/para/client.key",
-    mysqlClientCertHint:
-      "O certificado e a chave privada do cliente devem ser fornecidos juntos quando o MySQL exige mTLS.",
+    mysqlClientCertHint: "O certificado e a chave privada do cliente devem ser fornecidos juntos quando o MySQL exige mTLS.",
     mysqlClientCertBrowse: "Escolher certificado do cliente",
     mysqlClientKeyBrowse: "Escolher chave privada do cliente",
     postgresSslMode: "Modo TLS",
@@ -196,14 +191,12 @@ export default {
     postgresSslModeVerifyFull: "Verificar Completo",
     postgresServerCert: "CA do Servidor",
     postgresRootCertPlaceholder: "/caminho/para/ca.crt",
-    postgresRootCertHint:
-      "Use isto para verify-ca ou verify-full quando o certificado do servidor é assinado por uma CA privada.",
+    postgresRootCertHint: "Use isto para verify-ca ou verify-full quando o certificado do servidor é assinado por uma CA privada.",
     postgresRootCertBrowse: "Escolher certificado CA",
     postgresClientCert: "Autenticação do Cliente",
     postgresClientCertPlaceholder: "/caminho/para/client.crt",
     postgresClientKeyPlaceholder: "/caminho/para/client.key",
-    postgresClientCertHint:
-      "O certificado e a chave privada do cliente devem ser fornecidos juntos quando o PostgreSQL exige mTLS.",
+    postgresClientCertHint: "O certificado e a chave privada do cliente devem ser fornecidos juntos quando o PostgreSQL exige mTLS.",
     postgresClientCertBrowse: "Escolher certificado do cliente",
     postgresClientKeyBrowse: "Escolher chave privada do cliente",
     connectionUrlOptional: "URL (opcional)",
@@ -248,8 +241,7 @@ export default {
     connectFailed: "Falha na conexão: {message}",
     driverNotInstalled: "O driver {driver} não está instalado. Instale-o pelo Gerenciador de Drivers.",
     jreNotInstalled: "O runtime JRE {jre} não está instalado. Instale-o pelo Gerenciador de Drivers.",
-    systemJavaNotFound:
-      "O runtime Java do sistema não foi encontrado no PATH. Instale o Java ou escolha um executável Java personalizado.",
+    systemJavaNotFound: "O runtime Java do sistema não foi encontrado no PATH. Instale o Java ou escolha um executável Java personalizado.",
     customJavaPathEmpty: "O caminho do runtime Java personalizado está vazio. Escolha um executável Java.",
     jdbcPluginNotInstalled: "O plugin JDBC não está instalado. Instale o plugin JDBC opcional para usar esta conexão.",
     lastError: "Erro de conexão",
@@ -304,19 +296,16 @@ export default {
     jdbcUrl: "URL JDBC",
     jdbcUrlPlaceholder: "jdbc:postgresql://localhost:5432/database",
     jdbcDriverClass: "Classe do Driver (opcional)",
-    jdbcDriverClassPlaceholder:
-      "A maioria dos drivers se registra automaticamente; use com.vendor.jdbc.Driver se necessário",
+    jdbcDriverClassPlaceholder: "A maioria dos drivers se registra automaticamente; use com.vendor.jdbc.Driver se necessário",
     jdbcDriverPaths: "JARs do Driver",
     jdbcDriverSelectPlaceholder: "Escolher driver importado",
     jdbcDriverPathsPlaceholder: "/caminho/para/driver.jar\n/caminho/para/outro-driver.jar",
     jdbcDriverBrowse: "Escolher JAR do driver JDBC",
     jdbcDocs: "Ver documentação JDBC",
-    jdbcPluginHint:
-      "Instale primeiro o plugin JDBC do DBX e depois importe o JAR do driver JDBC do fornecedor do banco de dados.",
+    jdbcPluginHint: "Instale primeiro o plugin JDBC do DBX e depois importe o JAR do driver JDBC do fornecedor do banco de dados.",
     dmCompatHint: "Requer o driver ODBC DM8 instalado no seu sistema.",
     dmDownload: "Baixar da Dameng",
-    mongoLegacyHint:
-      "MongoDB abaixo de 4.2 requer o driver MongoDB (Legacy). Se a autenticação falhar e o usuário foi criado em admin, defina o BD de autenticação como admin.",
+    mongoLegacyHint: "MongoDB abaixo de 4.2 requer o driver MongoDB (Legacy). Se a autenticação falhar e o usuário foi criado em admin, defina o BD de autenticação como admin.",
     compatible: "Compatível",
     mainstream: "Popular",
     color: "Cor",
@@ -528,8 +517,7 @@ export default {
     formatterCustomName: "Nome do template",
     formatterCustomNamePlaceholder: "Exemplo: Rótulo do usuário",
     formatterCustomTemplateInput: "Template",
-    formatterCustomTemplateHint:
-      "Variáveis disponíveis: ${value}, ${upper}, ${lower}, ${length}. Dê um nome para salvá-lo na lista.",
+    formatterCustomTemplateHint: "Variáveis disponíveis: ${value}, ${upper}, ${lower}, ${length}. Dê um nome para salvá-lo na lista.",
     formatterPreview: "Visualização",
     saveFormatter: "Salvar",
     clearFormatter: "Limpar",
@@ -665,8 +653,7 @@ export default {
     transposeMultiRowToggle: "Várias linhas",
     transposeSingleRow: "Linha atual",
     transposeMultiRow: "Várias linhas",
-    transposeMultiRowHint:
-      "Quando ativado, a visualização transposta mostra várias linhas. Quando desativado, mostra apenas a linha atual.",
+    transposeMultiRowHint: "Quando ativado, a visualização transposta mostra várias linhas. Quando desativado, mostra apenas a linha atual.",
     rowsPerPageShort: " linhas",
     columnDetails: "Detalhes da Coluna",
     tableInfo: "Informações da Tabela",
@@ -684,39 +671,27 @@ export default {
     commit: "Confirmar",
     rollback: "Reverter",
     transactionSaveHint: "Confirmar {count} alteração(ões) pendente(s) em uma transação.",
-    nonTransactionalSaveHint:
-      "Salvar {count} alteração(ões) pendente(s) uma a uma. Se uma falhar, as alterações bem-sucedidas anteriores não serão revertidas.",
+    nonTransactionalSaveHint: "Salvar {count} alteração(ões) pendente(s) uma a uma. Se uma falhar, as alterações bem-sucedidas anteriores não serão revertidas.",
     keylessEditWarning: "Sem chave primária",
-    keylessEditWarningHint:
-      "Esta tabela não possui chave primária. Atualizações e exclusões usam todos os valores originais da linha na cláusula WHERE; linhas exatamente duplicadas podem ser afetadas juntas.",
+    keylessEditWarningHint: "Esta tabela não possui chave primária. Atualizações e exclusões usam todos os valores originais da linha na cláusula WHERE; linhas exatamente duplicadas podem ser afetadas juntas.",
     queryEditReady: "Editável",
-    queryEditReadyHint:
-      "Este resultado de tabela única vem de “{table}”. Você pode editar, excluir ou adicionar linhas e, em seguida, usar a ação de alterações pendentes para salvar.",
+    queryEditReadyHint: "Este resultado de tabela única vem de “{table}”. Você pode editar, excluir ou adicionar linhas e, em seguida, usar a ação de alterações pendentes para salvar.",
     queryEditReadOnly: "Resultado somente leitura",
     queryEditUnsupported: {
       "not-select": "Apenas resultados de consultas SELECT podem ser editados diretamente.",
       cte: "Consultas com WITH/CTE ainda não são editáveis. Use um SELECT simples de tabela única.",
-      "set-operation":
-        "Resultados de UNION, INTERSECT ou EXCEPT não podem ser mapeados com segurança de volta às linhas de origem.",
+      "set-operation": "Resultados de UNION, INTERSECT ou EXCEPT não podem ser mapeados com segurança de volta às linhas de origem.",
       aggregation: "Resultados de DISTINCT, GROUP BY, HAVING e agregações não podem ser editados diretamente.",
-      "external-source":
-        "Arquivos externos e resultados de funções de tabela não podem ser gravados de volta diretamente. Importe-os para uma tabela do banco de dados antes de editar.",
-      "complex-source":
-        "JOINs, múltiplas tabelas e subconsultas não podem ser mapeados com segurança para uma única linha de origem.",
-      "computed-columns":
-        "Expressões computadas ou resultados de funções não podem ser gravados de volta. Selecione os nomes brutos das colunas em vez disso.",
+      "external-source": "Arquivos externos e resultados de funções de tabela não podem ser gravados de volta diretamente. Importe-os para uma tabela do banco de dados antes de editar.",
+      "complex-source": "JOINs, múltiplas tabelas e subconsultas não podem ser mapeados com segurança para uma única linha de origem.",
+      "computed-columns": "Expressões computadas ou resultados de funções não podem ser gravados de volta. Selecione os nomes brutos das colunas em vez disso.",
       "no-table": "Nenhuma tabela de origem editável foi detectada.",
-      "no-primary-key":
-        "A tabela de destino não possui chave primária, portanto as linhas não podem ser atualizadas ou excluídas com segurança.",
-      "primary-key-not-returned":
-        "O resultado está sem a coluna bruta da chave primária. Inclua-a pelo seu nome de coluna original.",
-      "aliased-columns":
-        "As colunas do resultado usam aliases ou expressões. Selecione colunas editáveis pelos seus nomes originais.",
-      "metadata-unavailable":
-        "O DBX não conseguiu carregar os metadados da tabela, portanto a edição do resultado está desabilitada.",
+      "no-primary-key": "A tabela de destino não possui chave primária, portanto as linhas não podem ser atualizadas ou excluídas com segurança.",
+      "primary-key-not-returned": "O resultado está sem a coluna bruta da chave primária. Inclua-a pelo seu nome de coluna original.",
+      "aliased-columns": "As colunas do resultado usam aliases ou expressões. Selecione colunas editáveis pelos seus nomes originais.",
+      "metadata-unavailable": "O DBX não conseguiu carregar os metadados da tabela, portanto a edição do resultado está desabilitada.",
     },
-    sortUnsupported:
-      "Este SQL não suporta a ordenação do resultado completo. Tente novamente com uma única consulta SELECT.",
+    sortUnsupported: "Este SQL não suporta a ordenação do resultado completo. Tente novamente com uma única consulta SELECT.",
     truncatedHint: "Resultados truncados em {count} linhas. Use a paginação no rodapé ou ajuste as linhas por página.",
   },
   exportProgress: {
@@ -754,8 +729,7 @@ export default {
     tipExecute: "para executar a consulta",
     fileOpened: "{name} aberto",
     mcpTitle: "Integração com Agente de IA",
-    mcpDescription:
-      "Além do assistente de IA integrado, você também pode usar Claude Code, Cursor e outros agentes de codificação para consultar seus bancos de dados via MCP.",
+    mcpDescription: "Além do assistente de IA integrado, você também pode usar Claude Code, Cursor e outros agentes de codificação para consultar seus bancos de dados via MCP.",
     mcpLearnMore: "Saiba mais",
   },
   common: {
@@ -806,20 +780,13 @@ export default {
       sameName: "Mesmo Nome",
     },
     description: {
-      foreignKeyIncoming:
-        "{target} aponta para o campo atual através de uma chave estrangeira. Esta é uma dependência verificada.",
-      foreignKeyOutgoing:
-        "O campo atual referencia {target} através de uma chave estrangeira. Esta é uma dependência verificada.",
-      viewLikely:
-        "A definição da visão menciona tanto a tabela quanto o campo de destino, geralmente indicando dependência de consulta.",
-      viewPossible:
-        "A definição da visão menciona um campo de mesmo nome, mas não a tabela de destino, então precisa de confirmação.",
-      historyLikely:
-        "Uma instrução SQL histórica menciona tanto a tabela quanto o campo de destino. Use-a como contexto de análise de impacto.",
-      historyPossible:
-        "Uma instrução SQL histórica menciona um campo de mesmo nome. Pode estar relacionado, mas precisa de contexto.",
-      sameName:
-        "Outra tabela possui um campo de mesmo nome. Isso pode compartilhar significado de negócio, mas não é uma dependência verificada do banco de dados.",
+      foreignKeyIncoming: "{target} aponta para o campo atual através de uma chave estrangeira. Esta é uma dependência verificada.",
+      foreignKeyOutgoing: "O campo atual referencia {target} através de uma chave estrangeira. Esta é uma dependência verificada.",
+      viewLikely: "A definição da visão menciona tanto a tabela quanto o campo de destino, geralmente indicando dependência de consulta.",
+      viewPossible: "A definição da visão menciona um campo de mesmo nome, mas não a tabela de destino, então precisa de confirmação.",
+      historyLikely: "Uma instrução SQL histórica menciona tanto a tabela quanto o campo de destino. Use-a como contexto de análise de impacto.",
+      historyPossible: "Uma instrução SQL histórica menciona um campo de mesmo nome. Pode estar relacionado, mas precisa de contexto.",
+      sameName: "Outra tabela possui um campo de mesmo nome. Isso pode compartilhar significado de negócio, mas não é uma dependência verificada do banco de dados.",
     },
     cancel: "Cancelar",
     refresh: "Analisar Novamente",
@@ -860,8 +827,7 @@ export default {
   configExport: {
     passphraseTitle: "Criptografar e Exportar",
     passphraseImportTitle: "Descriptografar e Importar",
-    passphraseExportHint:
-      "Para incluir as senhas de conexão na exportação, defina uma frase secreta para a criptografia. Você precisará da mesma frase secreta para importar.",
+    passphraseExportHint: "Para incluir as senhas de conexão na exportação, defina uma frase secreta para a criptografia. Você precisará da mesma frase secreta para importar.",
     passphraseImportHint: "Este arquivo está criptografado. Digite a frase secreta para descriptografar e importar.",
     passphrase: "Frase secreta",
     passphraseConfirm: "Confirmar Frase Secreta",
@@ -873,15 +839,12 @@ export default {
     exportEncrypted: "Exportar",
     decryptImport: "Descriptografar e Importar",
     wrongPassphrase: "Frase secreta incorreta ou arquivo corrompido",
-    cryptoUnavailable:
-      "A importação criptografada não está disponível neste contexto do navegador. Use HTTPS, localhost ou DBX Desktop.",
+    cryptoUnavailable: "A importação criptografada não está disponível neste contexto do navegador. Use HTTPS, localhost ou DBX Desktop.",
     exportSuccess: "Conexões exportadas com sucesso",
     importSuccess: "{count} conexão(ões) importada(s)",
-    importNavicatSuccess:
-      "{count} conexão(ões) do Navicat importada(s). Preencha qualquer conexão cuja senha ainda esteja vazia antes de testar.",
+    importNavicatSuccess: "{count} conexão(ões) do Navicat importada(s). Preencha qualquer conexão cuja senha ainda esteja vazia antes de testar.",
     importDatagripSuccess: "{count} conexão(ões) DataGrip importada(s), {filled} senha(s) preenchida(s) do Keychain.",
-    importDbeaverSuccess:
-      "{count} conexão(ões) do DBeaver importada(s). Preencha qualquer conexão cuja senha ainda esteja vazia antes de testar.",
+    importDbeaverSuccess: "{count} conexão(ões) do DBeaver importada(s). Preencha qualquer conexão cuja senha ainda esteja vazia antes de testar.",
     importNone: "Nenhuma conexão nova para importar",
     importLayoutConfirm: "O arquivo importado contém grupos de conexões. Aplicá-los?",
     importLayoutTitle: "Importar Grupos",
@@ -940,8 +903,7 @@ export default {
     fixWithAi: "Corrigir com AI",
     truncated: "Contexto truncado",
     contextSummary: "{database} · {tables} tabelas",
-    autoSqlBlocked:
-      "O SQL gerado pela AI pareceu arriscado demais para execução automática. Revise-o manualmente antes de executar.",
+    autoSqlBlocked: "O SQL gerado pela AI pareceu arriscado demais para execução automática. Revise-o manualmente antes de executar.",
     agentSteps: {
       generated: "SQL gerado",
       noSql: "Nenhum SQL encontrado",
@@ -968,8 +930,7 @@ export default {
     enableThinking: "Raciocínio",
     enableThinkingOn: "Ativado",
     enableThinkingOff: "Desativado",
-    enableThinkingHint:
-      "Esta opção só tem efeito em APIs /chat/completions e modelos compatíveis. Quando desativada, pode reduzir significativamente o uso de tokens, mas a qualidade dos resultados gerados pode diminuir ligeiramente.",
+    enableThinkingHint: "Esta opção só tem efeito em APIs /chat/completions e modelos compatíveis. Quando desativada, pode reduzir significativamente o uso de tokens, mas a qualidade dos resultados gerados pode diminuir ligeiramente.",
     actions: {
       generate: "Gerar SQL",
       explain: "Explicar SQL",
@@ -1040,8 +1001,7 @@ export default {
     structureDocYes: "Sim",
     structureDocNo: "Não",
     structureDocCopied: "Estrutura copiada",
-    structureDocCopyFallbackHint:
-      "A cópia automática foi bloqueada. Clique em Copiar novamente ou selecione o conteúdo abaixo.",
+    structureDocCopyFallbackHint: "A cópia automática foi bloqueada. Clique em Copiar novamente ou selecione o conteúdo abaixo.",
     saveStructure: "Salvar SQL",
     exportStructureCopied: "Estrutura copiada",
     createTable: "Criar Tabela",
@@ -1055,8 +1015,7 @@ export default {
     renameObjectNamePlaceholder: "Novo nome",
     renameObjectSuccess: '"{oldName}" renomeado para "{newName}"',
     confirmDropTableTitle: "Remover Tabela",
-    confirmDropTableMessage:
-      'Tem certeza de que deseja remover "{name}"? Isso excluirá permanentemente a tabela e todos os seus dados.',
+    confirmDropTableMessage: 'Tem certeza de que deseja remover "{name}"? Isso excluirá permanentemente a tabela e todos os seus dados.',
     confirmEmptyTableTitle: "Esvaziar Tabela",
     confirmEmptyTableMessage: 'Tem certeza de que deseja excluir todos os dados de "{name}"?',
     confirmTruncateTableTitle: "Truncar Tabela",
@@ -1074,11 +1033,9 @@ export default {
     batchDrop: "Remover selecionados ({count})",
     executeProcedure: "Executar Procedimento",
     confirmExecuteProcedureTitle: "Executar Procedimento",
-    confirmExecuteProcedureMessage:
-      'Executar o procedimento "{name}"? Você pode preencher ou ajustar os valores dos parâmetros primeiro.',
+    confirmExecuteProcedureMessage: 'Executar o procedimento "{name}"? Você pode preencher ou ajustar os valores dos parâmetros primeiro.',
     loadingProcedureParameters: "Carregando parâmetros...",
-    procedureParametersUnavailable:
-      "Não foi possível carregar os metadados dos parâmetros. Você ainda pode editar o SQL abaixo e executá-lo.",
+    procedureParametersUnavailable: "Não foi possível carregar os metadados dos parâmetros. Você ainda pode editar o SQL abaixo e executá-lo.",
     noProcedureParameters: "Nenhum parâmetro foi encontrado. O SQL atual será executado como exibido.",
     inputParameters: "{count} parâmetros de entrada",
     outputParameters: "{count} parâmetros de saída",
@@ -1088,8 +1045,7 @@ export default {
     parameterValue: "Valor",
     parameterNull: "NULL",
     parameterDefault: "DEFAULT",
-    parameterDefaultHint:
-      "Quando DEFAULT está marcado, o DBX omite esse argumento para que o banco de dados use o padrão do procedimento.",
+    parameterDefaultHint: "Quando DEFAULT está marcado, o DBX omite esse argumento para que o banco de dados use o padrão do procedimento.",
     parameterValuePlaceholder: "Digite o valor",
     outputOnly: "Apenas saída",
     sqlPreview: "Pré-visualização do SQL",
@@ -1107,8 +1063,7 @@ export default {
     confirmDropTriggerTitle: "Remover Gatilho",
     confirmDropTableChildObjectMessage: 'Tem certeza de que deseja remover "{name}" de "{table}"?',
     confirmBatchDropTitle: "Remover Objetos Selecionados",
-    confirmBatchDropMessage:
-      "Tem certeza de que deseja remover {count} objetos selecionados? Esta ação não pode ser desfeita.",
+    confirmBatchDropMessage: "Tem certeza de que deseja remover {count} objetos selecionados? Esta ação não pode ser desfeita.",
     confirmDropProcedureTitle: "Remover Procedimento",
     confirmDropProcedureMessage: 'Tem certeza de que deseja remover o procedimento "{name}"?',
     confirmDropFunctionTitle: "Remover Função",
@@ -1128,12 +1083,10 @@ export default {
     createDuckDbFile: "Criar Arquivo de Banco de Dados",
     dropDatabase: "Remover Banco de Dados",
     confirmDropDatabaseTitle: "Remover Banco de Dados",
-    confirmDropDatabaseMessage:
-      'Tem certeza de que deseja remover o banco de dados "{name}"? Isso excluirá permanentemente o banco de dados e todos os seus dados.',
+    confirmDropDatabaseMessage: 'Tem certeza de que deseja remover o banco de dados "{name}"? Isso excluirá permanentemente o banco de dados e todos os seus dados.',
     createDatabaseSuccess: 'Banco de dados "{name}" criado',
     createDuckDbFileSuccess: 'Arquivo de banco de dados DuckDB "{name}" criado e anexado',
-    createDuckDbFileDesktopOnly:
-      "A criação de arquivos de banco de dados DuckDB só está disponível no aplicativo desktop",
+    createDuckDbFileDesktopOnly: "A criação de arquivos de banco de dados DuckDB só está disponível no aplicativo desktop",
     dropDatabaseSuccess: 'Banco de dados "{name}" removido',
     createDatabaseNamePlaceholder: "Nome do banco de dados",
     createDatabaseCharset: "Conjunto de caracteres",
@@ -1143,8 +1096,7 @@ export default {
     createSchema: "Criar Schema",
     dropSchema: "Remover Schema",
     confirmDropSchemaTitle: "Remover Schema",
-    confirmDropSchemaMessage:
-      'Tem certeza de que deseja remover o schema "{name}"? Isso excluirá permanentemente o schema e todos os seus objetos.',
+    confirmDropSchemaMessage: 'Tem certeza de que deseja remover o schema "{name}"? Isso excluirá permanentemente o schema e todos os seus objetos.',
     createSchemaSuccess: 'Schema "{name}" criado',
     dropSchemaSuccess: 'Schema "{name}" removido',
     createSchemaNamePlaceholder: "Nome do schema",
@@ -1215,8 +1167,7 @@ export default {
     dropSelected: "Remover selecionados",
     clearSelection: "Limpar seleção",
     confirmBatchDropTitle: "Remover tabelas selecionadas",
-    confirmBatchDropMessage:
-      "Tem certeza de que deseja remover {count} tabelas selecionadas? Esta ação não pode ser desfeita.",
+    confirmBatchDropMessage: "Tem certeza de que deseja remover {count} tabelas selecionadas? Esta ação não pode ser desfeita.",
     batchDropSuccess: "{count} tabelas removidas",
   },
   structureEditor: {
@@ -1340,8 +1291,7 @@ export default {
     columnValue: "Valor",
     columnSize: "Tamanho",
     columnTTL: "TTL",
-    binaryStringReadonlyHint:
-      "Valores de string binária são exibidos como texto escapado no modo somente leitura; a edição de bytes brutos não é suportada.",
+    binaryStringReadonlyHint: "Valores de string binária são exibidos como texto escapado no modo somente leitura; a edição de bytes brutos não é suportada.",
     selectedKeys: "Chaves selecionadas",
     deleteGroup: "Excluir grupo",
     deleteGroupDetails: "{target}\n{count} chaves",
@@ -1480,14 +1430,12 @@ export default {
   },
   dangerDialog: {
     title: "Operação perigosa",
-    message:
-      "Esta instrução SQL pode modificar ou excluir dados de forma irreversível. Tem certeza de que deseja executá-la?",
+    message: "Esta instrução SQL pode modificar ou excluir dados de forma irreversível. Tem certeza de que deseja executá-la?",
     suppressFuturePrompts: "Não perguntar novamente para SQL perigoso",
     deleteMessage: "Esta operação de exclusão pode ser irreversível. Continuar?",
     deleteConfirm: "Confirmar exclusão",
     deleteRowMessage: "Esta linha será marcada para exclusão e removida do banco de dados após salvar. Continuar?",
-    deleteRowsMessage:
-      "Estas {count} linhas serão marcadas para exclusão e removidas do banco de dados após salvar. Continuar?",
+    deleteRowsMessage: "Estas {count} linhas serão marcadas para exclusão e removidas do banco de dados após salvar. Continuar?",
     deleteRowDetails: "Tabela: {table}",
     deleteRowDetailsNoTable: "Linha de resultado atual",
     redisKeyDetails: "Chave Redis: {key}",
@@ -1629,22 +1577,19 @@ export default {
     selectedTables: "{selected}/{total} selecionadas",
     selectAllTables: "Selecionar tudo",
     deselectAllTables: "Desmarcar tudo",
-    selectSourceTables:
-      "Selecione primeiro a conexão e o banco de dados de origem, depois escolha as tabelas para comparar",
+    selectSourceTables: "Selecione primeiro a conexão e o banco de dados de origem, depois escolha as tabelas para comparar",
     noTables: "Nenhuma tabela disponível para comparação",
     autoMatchHint: "O modo em lote corresponde automaticamente as tabelas de destino pelo mesmo nome",
     matchedTables: "{matched}/{total} tabelas correspondidas",
     missingTargetTables: "Tabelas de destino de mesmo nome ausentes: {tables}",
     keyColumns: "Colunas-Chave",
     keyColumnsPlaceholder: "Colunas primárias ou únicas separadas por vírgula",
-    keyColumnsAutoHint:
-      "Deixe em branco para detectar automaticamente as chaves primárias na comparação de tabela única, ou por tabela na comparação em lote.",
+    keyColumnsAutoHint: "Deixe em branco para detectar automaticamente as chaves primárias na comparação de tabela única, ou por tabela na comparação em lote.",
     rowCounts: "Origem com {source} linhas, destino com {target} linhas; comparação completa concluída",
     previewLimitOption: "Pré-visualizar {count}",
     compare: "Comparar Dados",
     summary: "{added} adicionados, {removed} removidos, {modified} modificados",
-    batchSummary:
-      "{tables} tabelas comparadas: {different} diferentes, {same} idênticas, {failed} com falha; {added} adicionados, {removed} removidos, {modified} modificados",
+    batchSummary: "{tables} tabelas comparadas: {different} diferentes, {same} idênticas, {failed} com falha; {added} adicionados, {removed} removidos, {modified} modificados",
     comparingTable: "Comparando {current}/{total}: {table}",
     keyColumnsInline: "Colunas-chave: {columns}",
     selectedInline: "Selecionados {selected}/{total}",
@@ -1735,8 +1680,7 @@ export default {
     languageTitle: "Idioma / 语言",
     fontSize: "Tamanho da fonte",
     uiScale: "Escala da UI",
-    uiScaleDescription:
-      "Dimensione toda a UI do desktop para telas de alta resolução (high-DPI). As alterações são aplicadas imediatamente e restauradas na próxima inicialização.",
+    uiScaleDescription: "Dimensione toda a UI do desktop para telas de alta resolução (high-DPI). As alterações são aplicadas imediatamente e restauradas na próxima inicialização.",
     theme: "Tema",
     selectTheme: "Selecionar tema...",
     followAppTheme: "Seguir o tema do app",
@@ -1751,14 +1695,11 @@ export default {
     iconThemeBlack: "Preto",
     iconThemeBlackDescription: "Usar a marca DBX em preto na janela, na bandeja e no logo.",
     showTrayIcon: "Mostrar ícone na bandeja/barra de menus",
-    showTrayIconDescription:
-      "Quando desativado, nenhum ícone é exibido, mas fechar a janela ainda oculta o DBX em segundo plano como antes.",
+    showTrayIconDescription: "Quando desativado, nenhum ícone é exibido, mas fechar a janela ainda oculta o DBX em segundo plano como antes.",
     updateNotificationsEnabled: "Ativar lembretes de atualização",
-    updateNotificationsEnabledDescription:
-      "Quando desativado, o DBX não verificará automaticamente atualizações do app ou dos drivers nem mostrará indicadores. Verificações manuais continuam disponíveis.",
+    updateNotificationsEnabledDescription: "Quando desativado, o DBX não verificará automaticamente atualizações do app ou dos drivers nem mostrará indicadores. Verificações manuais continuam disponíveis.",
     debugLoggingEnabled: "Ativar logs de depuração",
-    debugLoggingEnabledDescription:
-      "Registra logs locais de diagnóstico do lado do usuário ao investigar relatos. Desativado por padrão.",
+    debugLoggingEnabledDescription: "Registra logs locais de diagnóstico do lado do usuário ao investigar relatos. Desativado por padrão.",
     debugLogsCopy: "Copiar logs",
     debugLogsCopied: "Copiado",
     debugLogsDownload: "Baixar logs",
@@ -1766,14 +1707,11 @@ export default {
     debugLogsClear: "Limpar logs",
     dataGridDisplay: "Exibição da grade de dados",
     showColumnCommentsInHeader: "Mostrar comentários de coluna sob os nomes",
-    showColumnCommentsInHeaderDescription:
-      "Exibir comentários de colunas da tabela diretamente abaixo dos nomes das colunas da grade.",
+    showColumnCommentsInHeaderDescription: "Exibir comentários de colunas da tabela diretamente abaixo dos nomes das colunas da grade.",
     showColumnTypesInHeader: "Mostrar tipos de coluna sob os nomes",
-    showColumnTypesInHeaderDescription:
-      "Exibir o tipo de dado de cada coluna diretamente abaixo dos nomes das colunas da grade.",
+    showColumnTypesInHeaderDescription: "Exibir o tipo de dado de cada coluna diretamente abaixo dos nomes das colunas da grade.",
     compactColumnHeaderActions: "Ferramentas compactas no cabeçalho da coluna",
-    compactColumnHeaderActionsDescription:
-      "Mover as ferramentas de formatação e filtro local para um menu de mais opções para que os nomes das colunas tenham prioridade.",
+    compactColumnHeaderActionsDescription: "Mover as ferramentas de formatação e filtro local para um menu de mais opções para que os nomes das colunas tenham prioridade.",
     sidebarActivation: "Ativação da barra lateral",
     sidebarActivationSingle: "Clique único",
     sidebarActivationSingleDescription: "Abrir itens acionáveis da barra lateral com um clique.",
@@ -1781,38 +1719,28 @@ export default {
     sidebarActivationDoubleDescription: "Clique único seleciona linhas; clique duplo abre itens.",
     sidebarObjectDisplay: "Layout de objetos da barra lateral",
     sidebarObjectDisplayGrouped: "Visualização avançada",
-    sidebarObjectDisplayGroupedDescription:
-      "Agrupar objetos por tabelas, views, procedures e funções para bancos de dados com mais tipos de objetos.",
+    sidebarObjectDisplayGroupedDescription: "Agrupar objetos por tabelas, views, procedures e funções para bancos de dados com mais tipos de objetos.",
     sidebarObjectDisplaySimple: "Visualização simples",
-    sidebarObjectDisplaySimpleDescription:
-      "Listar tabelas e views diretamente sob cada banco de dados ou schema para reduzir os níveis intermediários.",
+    sidebarObjectDisplaySimpleDescription: "Listar tabelas e views diretamente sob cada banco de dados ou schema para reduzir os níveis intermediários.",
     autoSelectActiveSidebarNode: "Sempre selecionar o item aberto",
-    autoSelectActiveSidebarNodeDescription:
-      "Ao alternar abas, selecionar a tabela, coleção ou arquivo SQL correspondente visível na barra lateral.",
+    autoSelectActiveSidebarNodeDescription: "Ao alternar abas, selecionar a tabela, coleção ou arquivo SQL correspondente visível na barra lateral.",
     disconnectTabHandlingMode: "Abas após desconectar",
-    disconnectTabHandlingModeDescription:
-      "Escolha como as abas relacionadas devem ser tratadas após fechar uma conexão ou banco de dados.",
+    disconnectTabHandlingModeDescription: "Escolha como as abas relacionadas devem ser tratadas após fechar uma conexão ou banco de dados.",
     disconnectTabHandlingModeCloseTabs: "Fechar todas as abas",
     disconnectTabHandlingModeCloseTabsDescription: "Fechar todas as abas relacionadas à conexão ou ao banco de dados.",
     disconnectTabHandlingModeKeepTabsClearResults: "Fechar abas de objetos, manter abas SQL",
-    disconnectTabHandlingModeKeepTabsClearResultsDescription:
-      "Fechar abas de dados de tabela, navegador de objetos e estrutura, mantendo as abas de consultas SQL e o texto SQL, e também limpar o estado de execução e as sessões de resultados.",
+    disconnectTabHandlingModeKeepTabsClearResultsDescription: "Fechar abas de dados de tabela, navegador de objetos e estrutura, mantendo as abas de consultas SQL e o texto SQL, e também limpar o estado de execução e as sessões de resultados.",
     disconnectTabHandlingModeKeepTabsKeepResults: "Não fechar abas relacionadas",
-    disconnectTabHandlingModeKeepTabsKeepResultsDescription:
-      "Manter abas relacionadas, texto SQL e resultados atuais sem limpeza adicional.",
+    disconnectTabHandlingModeKeepTabsKeepResultsDescription: "Manter abas relacionadas, texto SQL e resultados atuais sem limpeza adicional.",
     reuseDataTab: "Reutilizar aba de dados",
-    reuseDataTabDescription:
-      "Ao clicar em uma tabela na barra lateral, reutilizar a aba de dados existente em vez de criar uma nova a cada vez.",
+    reuseDataTabDescription: "Ao clicar em uma tabela na barra lateral, reutilizar a aba de dados existente em vez de criar uma nova a cada vez.",
     sidebarHiddenTablePrefixes: "Prefixos de nome de tabela ocultos",
-    sidebarHiddenTablePrefixesDescription:
-      "Um prefixo por linha. Apenas os rótulos de tabela, view e coleção da barra lateral são encurtados; tooltips e ações ainda usam o nome completo.",
+    sidebarHiddenTablePrefixesDescription: "Um prefixo por linha. Apenas os rótulos de tabela, view e coleção da barra lateral são encurtados; tooltips e ações ainda usam o nome completo.",
     sidebarHiddenTablePrefixesPlaceholder: "Exemplo:\nODS_\nT8Y2_LONG_",
     sidebarHideTableComments: "Ocultar comentários de tabela na barra lateral",
-    sidebarHideTableCommentsDescription:
-      "Ocultar os comentários inline de tabela/view exibidos ao lado dos nomes na árvore da barra lateral para economizar espaço horizontal.",
+    sidebarHideTableCommentsDescription: "Ocultar os comentários inline de tabela/view exibidos ao lado dos nomes na árvore da barra lateral para economizar espaço horizontal.",
     sidebarAllowHorizontalScroll: "Permitir rolagem horizontal da barra lateral",
-    sidebarAllowHorizontalScrollDescription:
-      "Mostrar nomes longos de tabelas, views e coleções por completo, permitindo a rolagem horizontal da barra lateral.",
+    sidebarAllowHorizontalScrollDescription: "Mostrar nomes longos de tabelas, views e coleções por completo, permitindo a rolagem horizontal da barra lateral.",
     snippetsDescription: "Personalize os modelos de snippets SQL acionados no editor.",
     snippetsAdd: "Adicionar snippet",
     snippetsLabel: "Rótulo",
@@ -1825,8 +1753,7 @@ export default {
     snippetsAddTitle: "Adicionar snippet",
     snippetsEditTitle: "Editar snippet",
     syncWebDavTitle: "Sincronização WebDAV",
-    syncWebDavDescription:
-      "Envie ou restaure um snapshot do DBX a partir de um serviço de armazenamento compatível com WebDAV.",
+    syncWebDavDescription: "Envie ou restaure um snapshot do DBX a partir de um serviço de armazenamento compatível com WebDAV.",
     syncEndpoint: "URL do WebDAV",
     syncUsername: "Nome de usuário",
     syncPassword: "Senha",
@@ -1834,18 +1761,14 @@ export default {
     syncClearSavedPassword: "Limpar senha salva",
     syncRememberWebDavPassword: "Lembrar senha do app WebDAV",
     syncSavedPassword: "(salva)",
-    syncRememberWebDavPasswordDescription:
-      "A senha é criptografada e armazenada apenas neste dispositivo. Ela não é sincronizada para o WebDAV e não substitui a senha de sincronização.",
+    syncRememberWebDavPasswordDescription: "A senha é criptografada e armazenada apenas neste dispositivo. Ela não é sincronizada para o WebDAV e não substitui a senha de sincronização.",
     syncRemotePath: "Caminho remoto do snapshot",
     syncRemotePathDescription: "O DBX criará as pastas pai ausentes ao enviar.",
-    syncSecretNotice:
-      "Por padrão, o DBX sincroniza apenas detalhes de conexão e configurações. Senhas de banco de dados, senhas SSH, senhas de proxy, strings de conexão e chaves de API de IA permanecem locais.",
+    syncSecretNotice: "Por padrão, o DBX sincroniza apenas detalhes de conexão e configurações. Senhas de banco de dados, senhas SSH, senhas de proxy, strings de conexão e chaves de API de IA permanecem locais.",
     syncSecrets: "Sincronizar segredos criptografados",
-    syncSecretsDescription:
-      "Quando ativado, o DBX criptografa senhas de banco de dados, senhas SSH e chaves de API de IA antes de enviá-las para o WebDAV.",
+    syncSecretsDescription: "Quando ativado, o DBX criptografa senhas de banco de dados, senhas SSH e chaves de API de IA antes de enviá-las para o WebDAV.",
     syncSecretsPassphrase: "Senha de sincronização",
-    syncSecretsPassphraseDescription:
-      "Esta senha é usada apenas para criptografar e restaurar dados sensíveis. O DBX não a salva; digite-a novamente em cada dispositivo.",
+    syncSecretsPassphraseDescription: "Esta senha é usada apenas para criptografar e restaurar dados sensíveis. O DBX não a salva; digite-a novamente em cada dispositivo.",
     syncTest: "Testar",
     syncUpload: "Enviar",
     syncDownload: "Baixar",
@@ -1854,8 +1777,7 @@ export default {
     syncDownloadSuccess: "Baixados e aplicados {bytes} bytes de {path}.",
     syncSecretsApplied: "Os segredos criptografados foram restaurados.",
     syncSecretsSkipped: "Havia segredos criptografados, mas não foram restaurados.",
-    syncDownloadConfirm:
-      "Baixar e aplicar o snapshot remoto do DBX? Os metadados locais e os SQL salvos serão substituídos.",
+    syncDownloadConfirm: "Baixar e aplicar o snapshot remoto do DBX? Os metadados locais e os SQL salvos serão substituídos.",
     apply: "Aplicar",
     applyAndClose: "Aplicar e fechar",
     reset: "Redefinir",
@@ -1868,8 +1790,7 @@ export default {
     wordWrap: "Quebra de linha",
     wordWrapDescription: "Quebrar linhas SQL longas dentro da largura do editor",
     confirmDangerousSqlExecution: "Confirmar antes de SQL perigoso",
-    confirmDangerousSqlExecutionDescription:
-      "Quando desativado, ALTER, DROP, DELETE, TRUNCATE e outros SQL perigosos são executados sem a caixa de diálogo de aviso.",
+    confirmDangerousSqlExecutionDescription: "Quando desativado, ALTER, DROP, DELETE, TRUNCATE e outros SQL perigosos são executados sem a caixa de diálogo de aviso.",
     redisScanPageSize: "Contagem de scan do Redis",
     redisScanPageSizeDescription: "Chaves solicitadas por página do Redis SCAN ao navegar pelas chaves.",
     redisScanPageSizeOption: "{count} chaves",
@@ -1950,8 +1871,7 @@ export default {
     jdbcDeleteSuccess: "Driver removido",
     jdbcNoDrivers: "Nenhum driver JDBC importado ainda.",
     mcpTitle: "Servidor MCP",
-    mcpDescription:
-      "Verifique a instalação e a versão do Servidor MCP do DBX usado pelo Claude Code, Cursor e outros agentes.",
+    mcpDescription: "Verifique a instalação e a versão do Servidor MCP do DBX usado pelo Claude Code, Cursor e outros agentes.",
     mcpChecking: "Verificando",
     mcpStatusUnknown: "Não verificado",
     mcpStatusError: "Falha na verificação",
@@ -1971,15 +1891,11 @@ export default {
     mcpCodexConfig: "Configuração do Codex",
     mcpCodexConfigPath: "O Codex pode usar ~/.codex/config.toml ou um .codex/config.toml no nível do projeto.",
     mcpReadonlyMode: "Modo somente leitura",
-    mcpReadonlyModeDescription:
-      "Adiciona DBX_MCP_ALLOW_WRITES=0 à configuração de exemplo para que a sessão MCP permaneça apenas para consultas.",
+    mcpReadonlyModeDescription: "Adiciona DBX_MCP_ALLOW_WRITES=0 à configuração de exemplo para que a sessão MCP permaneça apenas para consultas.",
     mcpAllowDangerous: "Permitir SQL perigoso",
-    mcpAllowDangerousDescription:
-      "Adiciona DBX_MCP_ALLOW_DANGEROUS_SQL=1 à configuração de exemplo para que instruções como DROP, TRUNCATE, ALTER e similares sejam permitidas.",
-    mcpDetectionTiming:
-      "O DBX verifica automaticamente quando esta página é aberta; use Verificar novamente para atualizar.",
-    mcpNpmBoundary:
-      "O DBX apenas verifica e explica o status do MCP; a instalação e as atualizações ainda são feitas pelo npm.",
+    mcpAllowDangerousDescription: "Adiciona DBX_MCP_ALLOW_DANGEROUS_SQL=1 à configuração de exemplo para que instruções como DROP, TRUNCATE, ALTER e similares sejam permitidas.",
+    mcpDetectionTiming: "O DBX verifica automaticamente quando esta página é aberta; use Verificar novamente para atualizar.",
+    mcpNpmBoundary: "O DBX apenas verifica e explica o status do MCP; a instalação e as atualizações ainda são feitas pelo npm.",
     mcpRefresh: "Verificar novamente",
     mcpGuide: "Guia do MCP",
     aboutDescription: "Uma ferramenta de gerenciamento de banco de dados leve e de código aberto.",

@@ -54,8 +54,7 @@ export default {
     rateLimited: "GitHub 更新檢查暫時觸發頻率限制。你仍然可以開啟下載頁手動檢視。",
     openRelease: "開啟下載頁",
     downloadAndInstall: "下載並安裝",
-    portableManualUpdate:
-      "可攜版無法使用應用程式內建安裝器更新。請從發行頁下載可攜版 ZIP，並解壓縮覆蓋目前的 DBX 目錄，以保留 portable.dbx 和 data。",
+    portableManualUpdate: "可攜版無法使用應用程式內建安裝器更新。請從發行頁下載可攜版 ZIP，並解壓縮覆蓋目前的 DBX 目錄，以保留 portable.dbx 和 data。",
     downloading: "下載中 {progress}%",
     downloadFailed: "更新下載失敗：{error}",
     restart: "結束並重新啟動",
@@ -145,8 +144,7 @@ export default {
     memoryDatabasePathHint: "輸入 :memory: 可建立 SQLite 或 DuckDB 記憶體資料庫。",
     sqliteExtensions: "SQLite 擴充庫",
     sqliteExtensionsPlaceholder: "/path/to/regexp.dylib\n/path/to/text.dylib|sqlite3_text_init",
-    sqliteExtensionsHint:
-      "每行一個 .dylib/.so/.dll；需要入口函式時使用「路徑|入口函式」。連線時載入，載入後會關閉 load_extension。",
+    sqliteExtensionsHint: "每行一個 .dylib/.so/.dll；需要入口函式時使用「路徑|入口函式」。連線時載入，載入後會關閉 load_extension。",
     sqliteExtensionBrowse: "選擇 SQLite 擴充庫",
     user: "使用者名稱",
     password: "密碼",
@@ -307,8 +305,7 @@ export default {
     jdbcPluginHint: "先安裝 DBX JDBC 外掛程式，再匯入資料庫廠商提供的 JDBC 驅動程式 JAR。",
     dmCompatHint: "需要在系統上安裝達夢 DM8 ODBC 驅動程式。",
     dmDownload: "前往達夢官網下載",
-    mongoLegacyHint:
-      "MongoDB 4.2 以下版本需安裝 MongoDB (Legacy) 驅動程式。若帳號建立在 admin 且認證失敗，請將認證庫設為 admin。",
+    mongoLegacyHint: "MongoDB 4.2 以下版本需安裝 MongoDB (Legacy) 驅動程式。若帳號建立在 admin 且認證失敗，請將認證庫設為 admin。",
     compatible: "相容",
     mainstream: "熱門",
     color: "顏色",
@@ -675,8 +672,7 @@ export default {
     transactionSaveHint: "在事務中提交 {count} 項待儲存更改。",
     nonTransactionalSaveHint: "逐條儲存 {count} 項更改；如果中途失敗，前面已成功的更改不會回溯。",
     keylessEditWarning: "無主鍵定位",
-    keylessEditWarningHint:
-      "此資料表沒有主鍵。更新與刪除會在 WHERE 子句中使用所有原始資料列值；完全重複的資料列可能會一起受到影響。",
+    keylessEditWarningHint: "此資料表沒有主鍵。更新與刪除會在 WHERE 子句中使用所有原始資料列值；完全重複的資料列可能會一起受到影響。",
     queryEditReady: "可編輯",
     queryEditReadyHint: "這是來自「{table}」的單一資料表結果，可直接修改、刪除或新增資料列，最後點選待儲存按鈕儲存。",
     queryEditReadOnly: "唯讀結果",
@@ -913,8 +909,7 @@ export default {
     enableThinking: "Thinking",
     enableThinkingOn: "已啟用",
     enableThinkingOff: "已停用",
-    enableThinkingHint:
-      "此選項僅對 /chat/completions API 且部分支援的模型生效。設為停用後可大幅節省 token，但產生結果品質可能會略微下降。",
+    enableThinkingHint: "此選項僅對 /chat/completions API 且部分支援的模型生效。設為停用後可大幅節省 token，但產生結果品質可能會略微下降。",
     actions: {
       generate: "產生 SQL",
       explain: "解釋 SQL",
@@ -1571,8 +1566,7 @@ export default {
     previewLimitOption: "預覽 {count}",
     compare: "開始比較資料",
     summary: "新增 {added} 列，刪除 {removed} 列，修改 {modified} 列",
-    batchSummary:
-      "已比較 {tables} 張資料表：{different} 張有差異，{same} 張一致，{failed} 張失敗；新增 {added} 列，刪除 {removed} 列，修改 {modified} 列",
+    batchSummary: "已比較 {tables} 張資料表：{different} 張有差異，{same} 張一致，{failed} 張失敗；新增 {added} 列，刪除 {removed} 列，修改 {modified} 列",
     comparingTable: "正在比較 {current}/{total}：{table}",
     keyColumnsInline: "鍵欄位：{columns}",
     selectedInline: "已選擇 {selected}/{total}",
@@ -1678,8 +1672,7 @@ export default {
     showTrayIcon: "顯示系統匣/選單欄圖示",
     showTrayIconDescription: "關閉後不顯示圖示，但關閉視窗仍會像之前一樣隱藏到後台。",
     updateNotificationsEnabled: "啟用更新提醒",
-    updateNotificationsEnabledDescription:
-      "關閉後，DBX 不會自動檢查應用程式和驅動程式更新，也不會顯示更新紅點；仍可手動檢查更新。",
+    updateNotificationsEnabledDescription: "關閉後，DBX 不會自動檢查應用程式和驅動程式更新，也不會顯示更新紅點；仍可手動檢查更新。",
     debugLoggingEnabled: "啟用偵錯日誌",
     debugLoggingEnabledDescription: "開啟後在本機記錄更詳細的使用者側診斷日誌，回報問題時可暫時開啟；預設關閉。",
     debugLogsCopy: "複製日誌",
@@ -1711,15 +1704,13 @@ export default {
     disconnectTabHandlingModeCloseTabs: "關閉全部分頁",
     disconnectTabHandlingModeCloseTabsDescription: "直接關閉對應連線或資料庫下的全部相關分頁。",
     disconnectTabHandlingModeKeepTabsClearResults: "關閉物件分頁，保留 SQL 分頁",
-    disconnectTabHandlingModeKeepTabsClearResultsDescription:
-      "關閉資料表資料、物件瀏覽和結構等分頁，保留 SQL 查詢分頁與 SQL 文字，同時清理執行狀態與結果工作階段。",
+    disconnectTabHandlingModeKeepTabsClearResultsDescription: "關閉資料表資料、物件瀏覽和結構等分頁，保留 SQL 查詢分頁與 SQL 文字，同時清理執行狀態與結果工作階段。",
     disconnectTabHandlingModeKeepTabsKeepResults: "不關閉相關分頁",
     disconnectTabHandlingModeKeepTabsKeepResultsDescription: "保留相關分頁、SQL 文字與目前結果，不另外做清理。",
     reuseDataTab: "重複使用資料分頁",
     reuseDataTabDescription: "點擊側邊欄資料表名稱時，重複使用現有的資料分頁而不是建立新分頁，避免開啟過多分頁。",
     sidebarHiddenTablePrefixes: "隱藏資料表名稱字首",
-    sidebarHiddenTablePrefixesDescription:
-      "每行一個字首。只縮短側邊欄中的資料表、檢視和集合標籤；工具提示和實際操作仍使用完整名稱。",
+    sidebarHiddenTablePrefixesDescription: "每行一個字首。只縮短側邊欄中的資料表、檢視和集合標籤；工具提示和實際操作仍使用完整名稱。",
     sidebarHiddenTablePrefixesPlaceholder: "範例：\nODS_\nT8Y2_LONG_",
     sidebarHideTableComments: "隱藏側邊欄資料表註解",
     sidebarHideTableCommentsDescription: "隱藏側邊欄樹狀清單中名稱旁的資料表/檢視註解，以節省橫向空間。",
@@ -1748,8 +1739,7 @@ export default {
     syncRememberWebDavPasswordDescription: "密碼會加密儲存在本機，不會同步到 WebDAV，也不會取代同步密碼。",
     syncRemotePath: "遠端快照路徑",
     syncRemotePathDescription: "上傳時 DBX 會自動建立缺失的父目錄。",
-    syncSecretNotice:
-      "預設只同步連線詳細資料和設定。資料庫密碼、SSH 密碼、代理伺服器密碼、連線字串和 AI API Key 會保留在本機。",
+    syncSecretNotice: "預設只同步連線詳細資料和設定。資料庫密碼、SSH 密碼、代理伺服器密碼、連線字串和 AI API Key 會保留在本機。",
     syncSecrets: "同步加密後的敏感資訊",
     syncSecretsDescription: "開啟後，DBX 會先加密資料庫密碼、SSH 密碼和 AI API Key，再上傳到 WebDAV。",
     syncSecretsPassphrase: "同步密碼",

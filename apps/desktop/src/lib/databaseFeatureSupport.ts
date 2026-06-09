@@ -29,20 +29,12 @@ export function usesDatabaseObjectTreeMode(dbType?: DatabaseType): boolean {
   return !!dbType && DATABASE_OBJECT_TREE_TYPES.has(dbType);
 }
 
-export function databaseObjectTreeQuerySchema(
-  dbType: DatabaseType | undefined,
-  database: string,
-  schema?: string,
-): string {
+export function databaseObjectTreeQuerySchema(dbType: DatabaseType | undefined, database: string, schema?: string): string {
   if (usesDatabaseObjectTreeMode(dbType)) return "";
   return schema || database;
 }
 
-export function databaseObjectTreeNodeSchema(
-  dbType: DatabaseType | undefined,
-  database: string,
-  schema?: string,
-): string | undefined {
+export function databaseObjectTreeNodeSchema(dbType: DatabaseType | undefined, database: string, schema?: string): string | undefined {
   if (usesDatabaseObjectTreeMode(dbType)) return undefined;
   if (schema) return schema;
   return isSchemaAware(dbType) ? database : undefined;

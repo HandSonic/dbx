@@ -339,9 +339,7 @@
       "metadataConnectionScoped": false,
       "skipTcpProbe": true,
       "defaultPort": 5258,
-      "driverProfiles": [
-        { "profile": "gbase8s", "label": "GBase 8s", "agentKey": "gbase8s" }
-      ]
+      "driverProfiles": [{ "profile": "gbase8s", "label": "GBase 8s", "agentKey": "gbase8s" }]
     },
     {
       "dbType": "access",

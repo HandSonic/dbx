@@ -7,47 +7,25 @@ const UNSUPPORTED_VISIBLE_DATABASE_TYPES = new Set<DatabaseType>(["elasticsearch
 
 type VisibleDatabaseConnectionFields = Pick<
   ConnectionConfig,
-  | "db_type"
-  | "driver_profile"
-  | "host"
-  | "port"
-  | "username"
-  | "database"
-  | "connection_string"
-  | "url_params"
-  | "redis_connection_mode"
-  | "redis_sentinel_master"
-  | "redis_sentinel_nodes"
-  | "redis_cluster_nodes"
-  | "etcd_endpoints"
-  | "jdbc_driver_class"
+  "db_type" | "driver_profile" | "host" | "port" | "username" | "database" | "connection_string" | "url_params" | "redis_connection_mode" | "redis_sentinel_master" | "redis_sentinel_nodes" | "redis_cluster_nodes" | "etcd_endpoints" | "jdbc_driver_class"
 >;
 
 export function buildDraftVisibleDatabasesConnectionId(seed: string): string {
   return `${DRAFT_VISIBLE_DATABASES_PREFIX}${seed}`;
 }
 
-export function connectionCanChooseVisibleDatabases(
-  connection: Pick<ConnectionConfig, "db_type"> | undefined,
-): boolean {
+export function connectionCanChooseVisibleDatabases(connection: Pick<ConnectionConfig, "db_type"> | undefined): boolean {
   return !!connection?.db_type && !UNSUPPORTED_VISIBLE_DATABASE_TYPES.has(connection.db_type);
 }
 
-export function initialVisibleDatabaseSelection(
-  databaseNames: string[],
-  visibleDatabases: string[] | undefined,
-  connection?: Pick<ConnectionConfig, "db_type" | "driver_profile" | "visible_databases">,
-): string[] {
+export function initialVisibleDatabaseSelection(databaseNames: string[], visibleDatabases: string[] | undefined, connection?: Pick<ConnectionConfig, "db_type" | "driver_profile" | "visible_databases">): string[] {
   if (Array.isArray(visibleDatabases)) {
     return normalizeVisibleDatabaseSelection(visibleDatabases, databaseNames);
   }
   return filterDatabaseNamesForConnection(databaseNames, connection);
 }
 
-export function visibleDatabaseSelectionIsStale(
-  previous: VisibleDatabaseConnectionFields,
-  current: VisibleDatabaseConnectionFields,
-): boolean {
+export function visibleDatabaseSelectionIsStale(previous: VisibleDatabaseConnectionFields, current: VisibleDatabaseConnectionFields): boolean {
   return visibleDatabaseFingerprint(previous) !== visibleDatabaseFingerprint(current);
 }
 

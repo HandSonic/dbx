@@ -16,9 +16,7 @@ export type HistoryAiAnalysisEntry = {
   details_json?: string | null;
 };
 
-export function canRollbackHistoryEntry(
-  entry: Pick<HistoryAiAnalysisEntry, "connection_id" | "database" | "rollback_sql">,
-) {
+export function canRollbackHistoryEntry(entry: Pick<HistoryAiAnalysisEntry, "connection_id" | "database" | "rollback_sql">) {
   return !!entry.connection_id?.trim() && !!entry.database?.trim() && !!entry.rollback_sql?.trim();
 }
 

@@ -14,11 +14,7 @@ type TrimmedSelectionRect = {
 
 type PositionRect = ReturnType<EditorView["coordsAtPos"]>;
 
-function visualLineVerticalBounds(
-  view: EditorView,
-  start: NonNullable<PositionRect>,
-  end: NonNullable<PositionRect>,
-): { top: number; bottom: number } {
+function visualLineVerticalBounds(view: EditorView, start: NonNullable<PositionRect>, end: NonNullable<PositionRect>): { top: number; bottom: number } {
   const top = Math.min(start.top, end.top);
   const bottom = Math.max(start.bottom, end.bottom);
   const height = Math.max(bottom - top, view.defaultLineHeight);
@@ -37,15 +33,7 @@ function layerBase(view: EditorView) {
   };
 }
 
-function markerForLineRange(
-  view: EditorView,
-  from: number,
-  to: number,
-  lineFrom: number,
-  lineTo: number,
-  includesLineBreak: boolean,
-  base: { left: number; top: number },
-): TrimmedSelectionRect | null {
+function markerForLineRange(view: EditorView, from: number, to: number, lineFrom: number, lineTo: number, includesLineBreak: boolean, base: { left: number; top: number }): TrimmedSelectionRect | null {
   const start = view.coordsAtPos(from, 1);
   const end = from < to ? view.coordsAtPos(to, -1) : start;
   const lineStart = view.coordsAtPos(lineFrom, 1) ?? start;
@@ -74,12 +62,7 @@ function sameVisualLine(a: NonNullable<PositionRect>, b: NonNullable<PositionRec
   return Math.abs(aMid - bMid) <= Math.max(2, Math.min(a.bottom - a.top, b.bottom - b.top) / 2);
 }
 
-function lastPositionOnVisualLine(
-  view: EditorView,
-  from: number,
-  to: number,
-  start: NonNullable<PositionRect>,
-): number {
+function lastPositionOnVisualLine(view: EditorView, from: number, to: number, start: NonNullable<PositionRect>): number {
   let low = from + 1;
   let high = to;
   let best = from;
@@ -98,15 +81,7 @@ function lastPositionOnVisualLine(
   return best > from ? best : Math.min(to, from + 1);
 }
 
-function markerRectsForLineRange(
-  view: EditorView,
-  from: number,
-  to: number,
-  lineFrom: number,
-  lineTo: number,
-  includesLineBreak: boolean,
-  base: { left: number; top: number },
-): TrimmedSelectionRect[] {
+function markerRectsForLineRange(view: EditorView, from: number, to: number, lineFrom: number, lineTo: number, includesLineBreak: boolean, base: { left: number; top: number }): TrimmedSelectionRect[] {
   const start = view.coordsAtPos(from, 1);
   const end = from < to ? view.coordsAtPos(to, -1) : start;
   if (!start || !end) return [];
@@ -121,15 +96,7 @@ function markerRectsForLineRange(
     const segmentStart = view.coordsAtPos(segmentFrom, 1);
     if (!segmentStart) break;
     const segmentTo = lastPositionOnVisualLine(view, segmentFrom, to, segmentStart);
-    const rect = markerForLineRange(
-      view,
-      segmentFrom,
-      segmentTo,
-      lineFrom,
-      lineTo,
-      includesLineBreak && segmentTo >= to,
-      base,
-    );
+    const rect = markerForLineRange(view, segmentFrom, segmentTo, lineFrom, lineTo, includesLineBreak && segmentTo >= to, base);
     if (rect) rects.push(rect);
     if (segmentTo <= segmentFrom) break;
     segmentFrom = segmentTo;

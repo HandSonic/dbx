@@ -11,22 +11,11 @@ export interface BuildRenameObjectSqlOptions {
   newName: string;
 }
 
-const postgresLikeRenameTypes = new Set<DatabaseType>([
-  "postgres",
-  "redshift",
-  "gaussdb",
-  "kwdb",
-  "kingbase",
-  "highgo",
-  "vastbase",
-]);
+const postgresLikeRenameTypes = new Set<DatabaseType>(["postgres", "redshift", "gaussdb", "kwdb", "kingbase", "highgo", "vastbase"]);
 
 const oracleLikeRenameTypes = new Set<DatabaseType>(["oracle", "dameng"]);
 
-export function supportsObjectRename(
-  databaseType: DatabaseType | undefined,
-  objectType: RenameableObjectType,
-): boolean {
+export function supportsObjectRename(databaseType: DatabaseType | undefined, objectType: RenameableObjectType): boolean {
   if (!databaseType) return false;
   if (databaseType === "sqlserver") return true;
   if (objectType === "PROCEDURE" || objectType === "FUNCTION") {

@@ -329,9 +329,7 @@ export interface ConnectionGroup {
   collapsed: boolean;
 }
 
-export type SidebarOrderEntry =
-  | { type: "group"; id: string; connectionIds: string[] }
-  | { type: "connection"; id: string };
+export type SidebarOrderEntry = { type: "group"; id: string; connectionIds: string[] } | { type: "connection"; id: string };
 
 export interface SidebarLayout {
   groups: ConnectionGroup[];
@@ -440,19 +438,7 @@ export interface QueryTab {
     }[];
   };
   querySourceColumns?: Array<string | undefined>;
-  queryEditabilityReason?:
-    | "not-select"
-    | "cte"
-    | "set-operation"
-    | "aggregation"
-    | "external-source"
-    | "complex-source"
-    | "computed-columns"
-    | "no-table"
-    | "no-primary-key"
-    | "primary-key-not-returned"
-    | "aliased-columns"
-    | "metadata-unavailable";
+  queryEditabilityReason?: "not-select" | "cte" | "set-operation" | "aggregation" | "external-source" | "complex-source" | "computed-columns" | "no-table" | "no-primary-key" | "primary-key-not-returned" | "aliased-columns" | "metadata-unavailable";
   resultEvicted?: boolean;
   whereInput?: string;
 }

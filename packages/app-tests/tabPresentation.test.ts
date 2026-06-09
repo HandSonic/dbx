@@ -1,11 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
-import {
-  executionSummaryItems,
-  tabDisplayTitle,
-  tabularResultItems,
-} from "../../apps/desktop/src/lib/tabPresentation.ts";
+import { executionSummaryItems, tabDisplayTitle, tabularResultItems } from "../../apps/desktop/src/lib/tabPresentation.ts";
 import { useConnectionStore } from "../../apps/desktop/src/stores/connectionStore.ts";
 import type { ConnectionConfig, QueryResult, QueryTab } from "../../apps/desktop/src/types/database.ts";
 

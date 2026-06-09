@@ -84,22 +84,12 @@ function schemaMatches(node: TreeNode, schema: string | undefined): boolean {
 
 export function matchesTarget(node: TreeNode, target: ActiveTabSidebarTarget): boolean {
   if (target.type === "mongo-collection") {
-    return (
-      node.type === "mongo-collection" &&
-      node.connectionId === target.connectionId &&
-      node.database === target.database &&
-      node.label === target.collectionName
-    );
+    return node.type === "mongo-collection" && node.connectionId === target.connectionId && node.database === target.database && node.label === target.collectionName;
   }
 
   if (target.type === "query-context") {
     if (target.schema) {
-      return (
-        node.type === "schema" &&
-        node.connectionId === target.connectionId &&
-        node.database === target.database &&
-        node.label === target.schema
-      );
+      return node.type === "schema" && node.connectionId === target.connectionId && node.database === target.database && node.label === target.schema;
     }
     return node.type === "database" && node.connectionId === target.connectionId && node.label === target.database;
   }
@@ -112,43 +102,21 @@ export function matchesTarget(node: TreeNode, target: ActiveTabSidebarTarget): b
     return node.type === "saved-sql-file" && node.savedSqlId === target.savedSqlId;
   }
 
-  return (
-    (node.type === "table" || node.type === "view") &&
-    node.connectionId === target.connectionId &&
-    node.database === target.database &&
-    schemaMatches(node, target.schema) &&
-    node.label === target.tableName
-  );
+  return (node.type === "table" || node.type === "view") && node.connectionId === target.connectionId && node.database === target.database && schemaMatches(node, target.schema) && node.label === target.tableName;
 }
 
-export function findSidebarNodeForActiveTab(
-  tab: QueryTab | undefined | null,
-  flatNodes: readonly FlatTreeNode[],
-): FlatTreeNode | null {
+export function findSidebarNodeForActiveTab(tab: QueryTab | undefined | null, flatNodes: readonly FlatTreeNode[]): FlatTreeNode | null {
   const target = activeTabSidebarTarget(tab);
   if (!target) return null;
   return flatNodes.find((item) => matchesTarget(item.node, target)) ?? null;
 }
 
-export function shouldScrollActiveSidebarSelection(options: {
-  activeTabId: string | null | undefined;
-  previousActiveTabId: string | null | undefined;
-  autoSelectEnabled: boolean;
-  previousAutoSelectEnabled: boolean | undefined;
-}): boolean {
+export function shouldScrollActiveSidebarSelection(options: { activeTabId: string | null | undefined; previousActiveTabId: string | null | undefined; autoSelectEnabled: boolean; previousAutoSelectEnabled: boolean | undefined }): boolean {
   if (!options.autoSelectEnabled) return false;
-  return (
-    options.activeTabId !== options.previousActiveTabId ||
-    (options.autoSelectEnabled && options.previousAutoSelectEnabled === false)
-  );
+  return options.activeTabId !== options.previousActiveTabId || (options.autoSelectEnabled && options.previousAutoSelectEnabled === false);
 }
 
-export function scrollTopForSidebarNode(options: {
-  index: number;
-  currentScrollTop: number;
-  viewportHeight: number;
-  rowHeight?: number;
-}): number {
+export function scrollTopForSidebarNode(options: { index: number; currentScrollTop: number; viewportHeight: number; rowHeight?: number }): number {
   const rowHeight = options.rowHeight ?? SIDEBAR_TREE_ROW_HEIGHT;
   if (options.index < 0 || options.viewportHeight <= 0) return options.currentScrollTop;
 
@@ -162,20 +130,13 @@ export function scrollTopForSidebarNode(options: {
   return options.currentScrollTop;
 }
 
-export function findNodePathForActiveTab(
-  tab: QueryTab | undefined | null,
-  treeNodes: readonly TreeNode[],
-): TreeNode[] | null {
+export function findNodePathForActiveTab(tab: QueryTab | undefined | null, treeNodes: readonly TreeNode[]): TreeNode[] | null {
   const target = activeTabSidebarTarget(tab);
   if (!target) return null;
   return findPath(treeNodes, (node) => matchesTarget(node, target));
 }
 
-function findPath(
-  nodes: readonly TreeNode[],
-  predicate: (node: TreeNode) => boolean,
-  path: TreeNode[] = [],
-): TreeNode[] | null {
+function findPath(nodes: readonly TreeNode[], predicate: (node: TreeNode) => boolean, path: TreeNode[] = []): TreeNode[] | null {
   for (const node of nodes) {
     const currentPath = [...path, node];
     if (predicate(node)) return currentPath;

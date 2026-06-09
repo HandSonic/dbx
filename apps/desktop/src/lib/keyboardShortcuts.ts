@@ -1,9 +1,4 @@
-import {
-  DEFAULT_SHORTCUT_SETTINGS,
-  normalizeShortcutSettings,
-  type ShortcutActionId,
-  type ShortcutSettings,
-} from "@/lib/shortcutRegistry";
+import { DEFAULT_SHORTCUT_SETTINGS, normalizeShortcutSettings, type ShortcutActionId, type ShortcutSettings } from "@/lib/shortcutRegistry";
 
 export interface ShortcutLikeEvent {
   key: string;
@@ -129,9 +124,7 @@ export function isAcceptCompletionShortcut(event: ShortcutLikeEvent, shortcuts?:
   return matchesShortcut(event, actionShortcut("acceptCompletion", shortcuts));
 }
 
-export function isObjectSourceSaveShortcutTarget(
-  target: { closest(selector: string): unknown } | null | undefined,
-): boolean {
+export function isObjectSourceSaveShortcutTarget(target: { closest(selector: string): unknown } | null | undefined): boolean {
   return !!target?.closest("[data-object-source-editor], [data-object-source-preview]");
 }
 
