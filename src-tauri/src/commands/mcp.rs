@@ -1,3 +1,4 @@
+use std::env;
 use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
@@ -91,10 +92,14 @@ fn installed_mcp_version() -> Option<String> {
 }
 
 fn locate_mcp_bin() -> Option<String> {
-    if cfg!(windows) {
+    #[cfg(windows)]
+    {
         return locate_windows_command("dbx-mcp-server");
     }
-    command_stdout("which", &["dbx-mcp-server"]).ok().and_then(first_non_empty_line)
+    #[cfg(not(windows))]
+    {
+        command_stdout("which", &["dbx-mcp-server"]).ok().and_then(first_non_empty_line)
+    }
 }
 
 #[cfg(windows)]
