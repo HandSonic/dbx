@@ -2,10 +2,12 @@
 import { computed, ref, watch, nextTick } from "vue";
 import type { CSSProperties } from "vue";
 import { useI18n } from "vue-i18n";
-import { X, Pin, ChevronDown, Table2, Code2, TableProperties, PencilRuler, KeyRound, Pencil, Package, Check, Lock, Copy } from "@lucide/vue";
+import { X, Pin, ChevronDown, Table2, Code2, TableProperties, PencilRuler, KeyRound, Pencil, Package, Check, Lock, Copy, AlertTriangle } from "@lucide/vue";
 import CustomContextMenu, { type ContextMenuItem } from "@/components/ui/CustomContextMenu.vue";
 import LightDropdown from "@/components/ui/LightDropdown.vue";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { useQueryStore } from "@/stores/queryStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useTabScroll } from "@/composables/useTabScroll";
@@ -22,6 +24,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   "toggle-driver-store": [];
   "close-driver-store": [];
+  "save-tab": [tabId: string];
 }>();
 
 const { t } = useI18n();
@@ -111,6 +114,19 @@ function getTabMenuItems(tab: QueryTab): ContextMenuItem[] {
       icon: X,
     },
   ];
+}
+
+function handleSaveAndClose() {
+  const id = queryStore.saveAndClosePendingTab();
+  if (id) emit("save-tab", id);
+}
+
+function handleDiscardAndClose() {
+  queryStore.forceClosePendingTab();
+}
+
+function handleCancelClose() {
+  queryStore.cancelClosePendingTab();
 }
 
 const tabsContainerRef = ref<HTMLElement | null>(null);
@@ -387,6 +403,30 @@ function activateTab(tabId: string) {
       />
     </div>
   </div>
+
+  <Dialog
+    :open="queryStore.showCloseConfirm"
+    @update:open="
+      (open) => {
+        if (!open) queryStore.cancelClosePendingTab();
+      }
+    "
+  >
+    <DialogContent class="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle class="flex items-center gap-2">
+          <AlertTriangle class="h-5 w-5 text-amber-500" />
+          {{ t("editor.unsavedChangesTitle") }}
+        </DialogTitle>
+      </DialogHeader>
+      <p class="text-sm text-muted-foreground">{{ t("editor.unsavedChangesMessage") }}</p>
+      <DialogFooter>
+        <Button variant="outline" @click="handleCancelClose">{{ t("common.cancel") }}</Button>
+        <Button variant="secondary" @click="handleDiscardAndClose">{{ t("editor.discardChanges") }}</Button>
+        <Button @click="handleSaveAndClose">{{ t("savedSql.save") }}</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <style scoped>

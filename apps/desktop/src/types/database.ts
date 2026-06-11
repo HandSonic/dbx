@@ -395,6 +395,7 @@ export interface QueryTab {
   schema?: string;
   sql: string;
   savedSqlId?: string;
+  originalSql?: string;
   lastExecutedSql?: string;
   resultBaseSql?: string;
   resultSortedSql?: string;

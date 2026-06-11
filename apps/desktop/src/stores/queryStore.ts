@@ -113,6 +113,8 @@ export const useQueryStore = defineStore("query", () => {
   const restored = loadSavedTabs();
   const tabs = ref<QueryTab[]>(restored.tabs);
   const activeTabId = ref<string | null>(restored.activeTabId);
+  const showCloseConfirm = ref(false);
+  const pendingCloseTabId = ref<string | null>(null);
   for (const tab of restored.tabs) {
     if (tab.mode === "data") void deleteTabResultSnapshot(tabResultCacheKey(tab.id));
   }
@@ -263,6 +265,7 @@ export const useQueryStore = defineStore("query", () => {
       isExplaining: false,
       mode,
     };
+    if (mode === "query") tab.originalSql = "";
     tabs.value.push(tab);
     activeTabId.value = id;
     return id;
@@ -353,7 +356,26 @@ export const useQueryStore = defineStore("query", () => {
     return id;
   }
 
-  function closeTab(id: string) {
+  function isTabDirty(tab: QueryTab): boolean {
+    if (tab.mode !== "query") return false;
+    if (!tab.sql.trim()) return false;
+    const original = tab.originalSql;
+    if (original === undefined) return !!tab.savedSqlId;
+    return tab.sql !== original;
+  }
+
+  function markTabClean(tab: QueryTab | undefined) {
+    if (tab) tab.originalSql = tab.sql;
+  }
+
+  function closeTab(id: string, { force = false }: { force?: boolean } = {}) {
+    const tab = tabs.value.find((t) => t.id === id);
+    if (!tab) return;
+    if (!force && isTabDirty(tab)) {
+      pendingCloseTabId.value = id;
+      showCloseConfirm.value = true;
+      return;
+    }
     const idx = tabs.value.findIndex((t) => t.id === id);
     if (idx < 0) return;
     clearDataGridPendingSnapshotsForTab(id);
@@ -366,6 +388,26 @@ export const useQueryStore = defineStore("query", () => {
     if (activeTabId.value === id) {
       activeTabId.value = tabs.value[Math.min(idx, tabs.value.length - 1)]?.id ?? null;
     }
+  }
+
+  function forceClosePendingTab() {
+    const id = pendingCloseTabId.value;
+    pendingCloseTabId.value = null;
+    showCloseConfirm.value = false;
+    if (id) closeTab(id, { force: true });
+  }
+
+  function cancelClosePendingTab() {
+    pendingCloseTabId.value = null;
+    showCloseConfirm.value = false;
+  }
+
+  function saveAndClosePendingTab() {
+    const id = pendingCloseTabId.value;
+    pendingCloseTabId.value = null;
+    showCloseConfirm.value = false;
+    if (id) return id;
+    return null;
   }
 
   function closeOtherTabs(id: string) {
@@ -568,6 +610,7 @@ export const useQueryStore = defineStore("query", () => {
       schema: file.schema,
       sql: file.sql,
       savedSqlId: file.id,
+      originalSql: file.sql,
       isExecuting: false,
       isCancelling: false,
       isExplaining: false,
@@ -1620,8 +1663,15 @@ export const useQueryStore = defineStore("query", () => {
   return {
     tabs,
     activeTabId,
+    showCloseConfirm,
+    pendingCloseTabId,
     createTab,
     closeTab,
+    forceClosePendingTab,
+    cancelClosePendingTab,
+    saveAndClosePendingTab,
+    isTabDirty,
+    markTabClean,
     closeOtherTabs,
     closeAllTabs,
     duplicateTab,
