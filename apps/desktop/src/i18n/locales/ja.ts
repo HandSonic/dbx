@@ -171,6 +171,7 @@ export default {
     driverNamePlaceholder: "ベンダー名または環境名",
     urlParams: "URLパラメータ",
     gbaseServer: "GBASEDBTSERVER",
+    informixServer: "INFORMIXSERVER",
     sslEnable: "暗号化接続を有効にする",
     caCertPath: "CA証明書",
     caCertPathPlaceholder: "任意、例: ~/.yandex/RootCA.crt",

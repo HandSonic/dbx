@@ -172,6 +172,7 @@ export default {
     driverNamePlaceholder: "Vendor or environment name",
     urlParams: "URL Params",
     gbaseServer: "GBASEDBTSERVER",
+    informixServer: "INFORMIXSERVER",
     sslEnable: "Enable encrypted connection",
     caCertPath: "CA Certificate",
     caCertPathPlaceholder: "Optional, e.g. ~/.yandex/RootCA.crt",

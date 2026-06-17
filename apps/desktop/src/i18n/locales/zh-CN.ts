@@ -173,6 +173,7 @@ export default {
     driverNamePlaceholder: "厂商或环境名称",
     urlParams: "URL 参数",
     gbaseServer: "GBASEDBTSERVER",
+    informixServer: "INFORMIXSERVER",
     sslEnable: "启用加密连接",
     caCertPath: "CA 证书",
     caCertPathPlaceholder: "可选，例如 ~/.yandex/RootCA.crt",

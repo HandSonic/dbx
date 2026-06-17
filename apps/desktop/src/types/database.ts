@@ -101,6 +101,7 @@ export interface ConnectionConfig {
   redis_key_separator?: string;
   etcd_endpoints?: string;
   gbase_server?: string;
+  informix_server?: string;
   external_config?: unknown;
   one_time?: boolean;
   read_only?: boolean;

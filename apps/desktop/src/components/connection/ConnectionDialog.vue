@@ -135,6 +135,7 @@ const defaultForm = (): ConnectionForm => ({
   redis_key_separator: ":",
   etcd_endpoints: "",
   gbase_server: "",
+  informix_server: "",
   external_config: undefined,
   read_only: false,
   visible_databases: undefined,
@@ -736,6 +737,7 @@ watch(
         redis_cluster_nodes: config.redis_cluster_nodes || "",
         redis_key_separator: config.redis_key_separator ?? ":",
         etcd_endpoints: config.etcd_endpoints || "",
+        informix_server: config.informix_server || "",
         read_only: config.read_only || false,
         visible_databases: config.visible_databases,
       };
@@ -1254,6 +1256,13 @@ function connectionConfigForSubmit(id: string): ConnectionConfig {
   config.keepalive_interval_secs = Number.isFinite(keepaliveInterval) && keepaliveInterval >= 0 ? keepaliveInterval : 0;
   if (config.db_type === "manticoresearch") {
     config.url_params = "";
+  }
+  if (config.db_type === "informix" && config.informix_server) {
+    // Strip INFORMIXSERVER from url_params to avoid duplicate when dedicated field is used
+    config.url_params = (config.url_params || "")
+      .replace(/(?:^|[;])\s*INFORMIXSERVER\s*=[^;]*/gi, "")
+      .replace(/^[;]|[;]$/g, "")
+      .trim();
   }
   if (!config.one_time) config.one_time = undefined;
   if (!config.read_only) config.read_only = undefined;
@@ -2973,6 +2982,11 @@ function openExternalUrl(url: string) {
                     <Input v-model="form.gbase_server" class="col-span-3" placeholder="gbase01" />
                   </div>
 
+                  <div v-if="form.db_type === 'informix'" class="grid grid-cols-4 items-center gap-4">
+                    <Label class="text-right text-xs">{{ t("connection.informixServer") }}</Label>
+                    <Input v-model="form.informix_server" class="col-span-3" placeholder="ol_informix1170" />
+                  </div>
+
                   <div class="grid grid-cols-4 items-center gap-4">
                     <Label class="text-right">{{ t("connection.user") }}</Label>
                     <Input v-model="form.username" class="col-span-3" />
@@ -3043,7 +3057,7 @@ function openExternalUrl(url: string) {
                               : form.db_type === 'bigquery'
                                 ? 'OAuthType=0;OAuthServiceAcctEmail=svc@project.iam.gserviceaccount.com;OAuthPvtKeyPath=/path/key.json'
                                 : form.db_type === 'informix'
-                                  ? 'INFORMIXSERVER=informix;CLIENT_LOCALE=en_US.utf8;DB_LOCALE=en_US.utf8'
+                                  ? 'CLIENT_LOCALE=en_US.utf8;DB_LOCALE=en_US.utf8'
                                   : 'sslmode=disable'
                       "
                     />
