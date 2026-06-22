@@ -1321,8 +1321,13 @@ pub async fn execute_batch_with_max_rows(
 
 fn sqlserver_batch_can_use_execute(sql: &str) -> bool {
     !requires_simple_query_batch(sql)
-        && !starts_with_executable_sql_keyword(sql, &["SELECT", "EXEC", "WITH", "TABLE"])
+        && !sqlserver_batch_may_return_result_set(sql)
         && !sqlserver_dml_output_returns_rows(sql)
+}
+
+fn sqlserver_batch_may_return_result_set(sql: &str) -> bool {
+    let tokens = top_level_sqlserver_tokens(sql);
+    tokens.iter().any(|token| matches!(token.text.as_str(), "SELECT" | "EXEC" | "EXECUTE" | "WITH" | "TABLE"))
 }
 
 fn sqlserver_dml_output_returns_rows(sql: &str) -> bool {
@@ -1479,8 +1484,15 @@ mod tests {
     fn sqlserver_result_returning_batches_keep_simple_query_path() {
         assert!(!sqlserver_batch_can_use_execute("SELECT * FROM dbo.users;"));
         assert!(!sqlserver_batch_can_use_execute("EXEC dbo.list_users;"));
+        assert!(!sqlserver_batch_can_use_execute("DECLARE @id INT = 1; EXEC dbo.list_users @id;"));
+        assert!(!sqlserver_batch_can_use_execute(
+            "DECLARE @id INT = 1; CREATE TABLE #t(id INT); INSERT INTO #t VALUES (@id); SELECT id FROM #t;"
+        ));
         assert!(!sqlserver_batch_can_use_execute("WITH cte AS (SELECT 1 AS id) SELECT * FROM cte;"));
         assert!(!sqlserver_batch_can_use_execute("UPDATE dbo.users SET active = 0 OUTPUT inserted.id WHERE id = 1;"));
+        assert!(sqlserver_batch_can_use_execute(
+            "DECLARE @id INT = 1; UPDATE dbo.users SET active = 0 WHERE id = @id;"
+        ));
         assert!(sqlserver_dml_output_returns_rows("DELETE FROM dbo.users OUTPUT deleted.id WHERE id = 1;"));
     }
 
