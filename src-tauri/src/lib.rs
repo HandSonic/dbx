@@ -755,6 +755,8 @@ pub fn run() {
             commands::query::build_data_grid_copy_insert_statement,
             commands::query::build_data_grid_context_filter_condition,
             commands::query::build_data_grid_column_value_filter_condition,
+            commands::query::build_data_grid_column_values_filter_condition,
+            commands::query::build_data_grid_column_distinct_values_sql,
             commands::query::build_data_grid_count_sql,
             commands::query::build_hive_table_properties_sql,
             commands::query::build_export_insert_statements,

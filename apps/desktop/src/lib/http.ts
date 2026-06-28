@@ -90,7 +90,17 @@ import type {
   DroppedFilePreviewSqlOptions,
 } from "./tauri";
 import type { QueryEditability } from "@/lib/sqlAnalysis";
-import type { DataGridColumnValueFilterConditionOptions, DataGridContextFilterConditionOptions, DataGridCountSqlOptions, DataGridCopyInsertStatementOptions, DataGridCopyUpdateStatementOptions, DataGridSaveStatementOptions, HiveTablePropertiesSqlOptions } from "@/lib/dataGridSql";
+import type {
+  DataGridColumnDistinctValuesSqlOptions,
+  DataGridColumnValueFilterConditionOptions,
+  DataGridColumnValuesFilterConditionOptions,
+  DataGridContextFilterConditionOptions,
+  DataGridCountSqlOptions,
+  DataGridCopyInsertStatementOptions,
+  DataGridCopyUpdateStatementOptions,
+  DataGridSaveStatementOptions,
+  HiveTablePropertiesSqlOptions,
+} from "@/lib/dataGridSql";
 import type { BuildTableStructureChangeSqlOptions, BuildSingleColumnAlterSqlOptions, TableStructureChangeSql } from "@/lib/tableStructureEditorSql";
 import type { BuildTableSelectSqlOptions } from "@/lib/tableSelectSql";
 import type { DatabaseSearchSql, DatabaseSearchSqlOptions, SearchResultWhereOptions } from "@/lib/databaseSearch";
@@ -806,6 +816,15 @@ export async function buildDataGridContextFilterCondition(options: DataGridConte
 export async function buildDataGridColumnValueFilterCondition(options: DataGridColumnValueFilterConditionOptions): Promise<string | undefined> {
   const result = await post<string | null>("/api/query/build-data-grid-column-value-filter-condition", { options });
   return result ?? undefined;
+}
+
+export async function buildDataGridColumnValuesFilterCondition(options: DataGridColumnValuesFilterConditionOptions): Promise<string | undefined> {
+  const result = await post<string | null>("/api/query/build-data-grid-column-values-filter-condition", { options });
+  return result ?? undefined;
+}
+
+export async function buildDataGridColumnDistinctValuesSql(options: DataGridColumnDistinctValuesSqlOptions): Promise<string> {
+  return post("/api/query/build-data-grid-column-distinct-values-sql", { options });
 }
 
 export async function buildDataGridCountSql(options: DataGridCountSqlOptions): Promise<string> {

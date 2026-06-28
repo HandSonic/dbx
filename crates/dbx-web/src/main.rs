@@ -290,6 +290,14 @@ async fn main() {
             "/query/build-data-grid-column-value-filter-condition",
             post(routes::query::build_data_grid_column_value_filter_condition),
         )
+        .route(
+            "/query/build-data-grid-column-values-filter-condition",
+            post(routes::query::build_data_grid_column_values_filter_condition),
+        )
+        .route(
+            "/query/build-data-grid-column-distinct-values-sql",
+            post(routes::query::build_data_grid_column_distinct_values_sql),
+        )
         .route("/query/build-data-grid-count-sql", post(routes::query::build_data_grid_count_sql))
         .route("/query/build-hive-table-properties-sql", post(routes::query::build_hive_table_properties_sql))
         .route("/query/build-export-insert-statements", post(routes::query::build_export_insert_statements))

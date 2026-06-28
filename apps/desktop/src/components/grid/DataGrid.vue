@@ -92,7 +92,7 @@ import { buildTableSelectSql, quoteTableIdentifier } from "@/lib/tableSelectSql"
 import { uuid } from "@/lib/utils";
 import { resolveHeaderColumnType } from "@/lib/dataGridColumnType";
 import { canEditExistingTableRows, canUseKeylessRowPredicate, hiveTablePropertiesIndicateTransactional, isClickHouseExistingRowReadonlyColumn, isHiddenGridColumn, isTdengineExistingRowReadonlyColumn, usesSyntheticRowIdKey } from "@/lib/tableEditing";
-import { buildDataGridContextFilterCondition, buildDataGridCountSql, buildHiveTablePropertiesSql, type DataGridContextFilterMode } from "@/lib/dataGridSql";
+import { buildDataGridColumnDistinctValuesSql, buildDataGridContextFilterCondition, buildDataGridCountSql, buildHiveTablePropertiesSql, type DataGridContextFilterMode } from "@/lib/dataGridSql";
 import {
   buildVisibleTransposeRows,
   nextAppendedTransposeState,
@@ -125,7 +125,7 @@ import { CANVAS_DATA_GRID_ROW_HEIGHT, drawCanvasDataGrid } from "@/lib/canvasDat
 import { dataGridSaveActionMode, dataGridSaveToolbarState } from "@/lib/dataGridSaveUi";
 import { EDITOR_FONT_FAMILY_CSS_VAR } from "@/lib/editorThemes";
 import { safeLocalStorageGet, safeLocalStorageSet } from "@/lib/safeStorage";
-import { appendColumnValueFilterCondition, buildColumnValueFilterCondition, combineWhereInputs, filterModeNeedsValue, parseFilterValue } from "@/lib/dataGridColumnFilter";
+import { appendColumnValueFilterCondition, buildColumnValueFilterCondition, buildColumnValuesFilterCondition, combineWhereInputs, filterModeNeedsValue, parseFilterValue } from "@/lib/dataGridColumnFilter";
 import { clampSearchSplitWidth } from "@/lib/dataGridSearchSplit";
 import { MAX_RESULT_PAGE_SIZE, MIN_RESULT_PAGE_SIZE, normalizeResultPageSize, resultPageSizeMenuOptions } from "@/lib/paginationPageSize";
 import { allNullColumnIndexes, filterColumnVisibilityOptions, hiddenColumnIndexesWithAllNullColumns, invertedHiddenColumnIndexes, nextHiddenColumnIndexes, removeAutoHiddenColumnIndexes, visibleColumnIndexesForFilter } from "@/lib/dataGridColumnVisibility";
@@ -521,9 +521,19 @@ const orderBySuggestionStyle = computed(() => ({
   top: `${orderBySuggestionPosition.value.top}px`,
 }));
 
+type LocalFilterMode = "local" | "server";
+type LocalFilterOption = {
+  key: string;
+  label: string;
+  count: number | null;
+  value: CellValue;
+};
+
 type LocalColumnFilterDraft = {
   columnIndex: number;
   values: Set<string>;
+  mode: LocalFilterMode;
+  touched: boolean;
 };
 
 type FilterMode = DataGridContextFilterMode;
@@ -544,6 +554,15 @@ const headerSortMenuOpenColumn = ref<number | null>(null);
 const headerPanelDismissGuardUntil = ref(0);
 const localFilterSearch = ref("");
 const localFilterDraft = ref<LocalColumnFilterDraft | null>(null);
+const SERVER_COLUMN_FILTER_LIMIT = 1000;
+const SERVER_COLUMN_FILTER_DEBOUNCE_MS = 300;
+const serverFilterLoading = ref(false);
+const serverFilterError = ref("");
+const serverFilterOptions = ref<LocalFilterOption[]>([]);
+const serverFilterLimited = ref(false);
+const serverFilterValueByKey = ref<Map<string, CellValue>>(new Map());
+let serverFilterRequestId = 0;
+let serverFilterSearchTimer: ReturnType<typeof window.setTimeout> | undefined;
 const filterBuilderOpen = ref(false);
 const filterModeOptions: Array<{ value: FilterMode; labelKey: string }> = [
   { value: "equals", labelKey: "grid.filterBuilderEquals" },
@@ -635,13 +654,13 @@ const localFilteredRows = computed(() => {
   return indices;
 });
 
-function buildLocalFilterOptions(columnIndex: number) {
-  const byKey = new Map<string, { key: string; label: string; count: number; value: CellValue }>();
+function buildLocalFilterOptions(columnIndex: number): LocalFilterOption[] {
+  const byKey = new Map<string, LocalFilterOption>();
   const addValue = (value: CellValue) => {
     const key = localFilterKey(value);
     const current = byKey.get(key);
     if (current) {
-      current.count += 1;
+      current.count = (current.count ?? 0) + 1;
     } else {
       byKey.set(key, { key, label: localFilterLabel(value, columnIndex), count: 1, value });
     }
@@ -662,12 +681,14 @@ function buildLocalFilterOptions(columnIndex: number) {
 }
 
 const localFilterAllOptions = computed(() => {
+  if (localFilterDraft.value?.mode === "server") return serverFilterOptions.value;
   const columnIndex = localFilterDraft.value?.columnIndex;
   if (columnIndex === undefined) return [];
   return buildLocalFilterOptions(columnIndex);
 });
 
 const localFilterOptions = computed(() => {
+  if (localFilterDraft.value?.mode === "server") return serverFilterOptions.value;
   const query = localFilterSearch.value.trim().toLowerCase();
   return localFilterAllOptions.value.filter((option) => !query || option.label.toLowerCase().includes(query)).slice(0, 500);
 });
@@ -695,14 +716,119 @@ const canApplyTypedLocalFilterValue = computed(() => {
   return !localFilterAllOptions.value.some((option) => option.label.toLowerCase() === normalized);
 });
 
-function openLocalFilter(colIdx: number) {
+function openLocalFilter(colIdx: number, requestedMode: LocalFilterMode = "local") {
   localFilterSearch.value = "";
-  const allKeys = buildLocalFilterOptions(colIdx).map((option) => option.key);
+  const mode: LocalFilterMode = requestedMode === "server" && canUseServerColumnFilter.value ? "server" : "local";
+  const allKeys = mode === "server" ? [] : buildLocalFilterOptions(colIdx).map((option) => option.key);
   localFilterDraft.value = {
     columnIndex: colIdx,
-    values: new Set(localColumnFilters.value[colIdx] ?? allKeys),
+    values: new Set(mode === "server" ? allKeys : (localColumnFilters.value[colIdx] ?? allKeys)),
+    mode,
+    touched: false,
   };
   localFilterOpenColumn.value = colIdx;
+  if (mode === "server") {
+    resetServerFilterState();
+    void loadServerFilterValues(colIdx, "");
+  } else {
+    resetServerFilterState();
+  }
+}
+
+function resetServerFilterState() {
+  serverFilterRequestId++;
+  if (serverFilterSearchTimer !== undefined) {
+    window.clearTimeout(serverFilterSearchTimer);
+    serverFilterSearchTimer = undefined;
+  }
+  serverFilterLoading.value = false;
+  serverFilterError.value = "";
+  serverFilterOptions.value = [];
+  serverFilterLimited.value = false;
+  serverFilterValueByKey.value = new Map();
+}
+
+function serverFilterOptionFromRow(row: QueryResult["rows"][number], columnIndex: number): LocalFilterOption {
+  const value = (row[0] ?? null) as CellValue;
+  const countValue = Number(row[1]);
+  const count = Number.isFinite(countValue) ? countValue : null;
+  return {
+    key: localFilterKey(value),
+    label: localFilterLabel(value, columnIndex),
+    count,
+    value,
+  };
+}
+
+function serverFilterOptionsFromResult(result: QueryResult, columnIndex: number): LocalFilterOption[] {
+  const byKey = new Map<string, LocalFilterOption>();
+  for (const row of result.rows) {
+    const option = serverFilterOptionFromRow(row, columnIndex);
+    const current = byKey.get(option.key);
+    if (current) {
+      current.count = (current.count ?? 0) + (option.count ?? 0);
+    } else {
+      byKey.set(option.key, option);
+    }
+  }
+  return [...byKey.values()];
+}
+
+function syncServerFilterDraft(columnIndex: number, options: LocalFilterOption[]) {
+  const draft = localFilterDraft.value;
+  if (!draft || draft.mode !== "server" || draft.columnIndex !== columnIndex) return;
+  if (draft.touched) return;
+  localFilterDraft.value = {
+    ...draft,
+    values: new Set(options.map((option) => option.key)),
+  };
+}
+
+async function loadServerFilterValues(columnIndex: number, searchValue: string) {
+  if (!canUseServerColumnFilter.value || !props.connectionId) return;
+  const columnName = props.result.columns[columnIndex];
+  if (!columnName) return;
+  const requestId = ++serverFilterRequestId;
+  serverFilterLoading.value = true;
+  serverFilterError.value = "";
+  serverFilterLimited.value = false;
+  try {
+    const tableMeta = await waitForTableMeta();
+    if (!tableMeta) return;
+    const columnInfo = tableMeta.columns.find((column) => column.name === columnName);
+    const sql = await buildDataGridColumnDistinctValuesSql({
+      databaseType: resolvedDatabaseType.value,
+      schema: tableMeta.schema,
+      tableName: tableMeta.tableName,
+      columnName,
+      columnInfo,
+      whereInput: currentWhereInput(),
+      searchValue: searchValue.trim() || undefined,
+      limit: SERVER_COLUMN_FILTER_LIMIT,
+      includeCounts: true,
+    });
+    const result = await api.executeQuery(props.connectionId, props.database ?? "", sql, tableMeta.schema ?? props.schema, undefined, {
+      maxRows: SERVER_COLUMN_FILTER_LIMIT,
+      fetchSize: SERVER_COLUMN_FILTER_LIMIT,
+      pageSize: SERVER_COLUMN_FILTER_LIMIT,
+    });
+    if (requestId !== serverFilterRequestId || localFilterOpenColumn.value !== columnIndex) return;
+    const options = serverFilterOptionsFromResult(result, columnIndex);
+    const nextValueByKey = new Map(serverFilterValueByKey.value);
+    for (const option of options) nextValueByKey.set(option.key, option.value);
+    serverFilterValueByKey.value = nextValueByKey;
+    serverFilterOptions.value = options;
+    serverFilterLimited.value = result.truncated === true || result.rows.length >= SERVER_COLUMN_FILTER_LIMIT;
+    syncServerFilterDraft(columnIndex, options);
+  } catch (e: any) {
+    if (requestId !== serverFilterRequestId) return;
+    serverFilterOptions.value = [];
+    serverFilterError.value = String(e?.message || e);
+  } finally {
+    if (requestId === serverFilterRequestId) {
+      serverFilterLoading.value = false;
+    }
+  }
 }
 
 function guardHeaderPanelDismiss() {
@@ -713,13 +839,13 @@ function shouldIgnoreHeaderPanelClose(columnIndex: number, openColumn: number | 
   return compactColumnHeaderActions.value && openColumn === columnIndex && Date.now() < headerPanelDismissGuardUntil.value;
 }
 
-function openCompactLocalFilter(colIdx: number) {
+function openCompactLocalFilter(colIdx: number, mode: LocalFilterMode = "local") {
   headerActionMenuOpenColumn.value = null;
   guardHeaderPanelDismiss();
   nextTick(() => {
     window.setTimeout(() => {
       guardHeaderPanelDismiss();
-      openLocalFilter(colIdx);
+      openLocalFilter(colIdx, mode);
     }, 0);
   });
 }
@@ -737,20 +863,35 @@ function compactColumnActionMenuItems(columnName: string) {
       value: "localFilter",
       icon: Filter,
     },
+    ...(canUseServerColumnFilter.value
+      ? [
+          {
+            label: t("grid.databaseValueFilter"),
+            value: "serverFilter",
+            icon: Database,
+          },
+        ]
+      : []),
   ];
+}
+
+function columnFilterPanelTitle(columnName: string): string {
+  return localFilterDraft.value?.mode === "server" ? t("grid.databaseValueFilterFor", { column: columnName }) : t("grid.localFilterFor", { column: columnName });
 }
 
 function selectCompactColumnAction(value: string, columnIndex: number) {
   if (value === "formatter") {
     openCompactColumnFormatter(columnIndex);
   } else if (value === "localFilter") {
-    openCompactLocalFilter(columnIndex);
+    openCompactLocalFilter(columnIndex, "local");
+  } else if (value === "serverFilter") {
+    openCompactLocalFilter(columnIndex, "server");
   }
 }
 
 function handleLocalFilterOpenChange(value: boolean, columnIndex: number) {
   if (value) {
-    openLocalFilter(columnIndex);
+    openLocalFilter(columnIndex, "local");
   } else if (!shouldIgnoreHeaderPanelClose(columnIndex, localFilterOpenColumn.value)) {
     closeLocalFilter();
   }
@@ -760,6 +901,7 @@ function closeLocalFilter() {
   localFilterOpenColumn.value = null;
   localFilterDraft.value = null;
   localFilterSearch.value = "";
+  resetServerFilterState();
 }
 
 function formatterKeyForColumn(column: string): string | null {
@@ -924,7 +1066,7 @@ function toggleLocalFilterValue(key: string) {
   const next = new Set(draft.values);
   if (next.has(key)) next.delete(key);
   else next.add(key);
-  localFilterDraft.value = { ...draft, values: next };
+  localFilterDraft.value = { ...draft, values: next, touched: true };
 }
 
 function toggleAllLocalFilterOptions() {
@@ -937,12 +1079,16 @@ function toggleAllLocalFilterOptions() {
   } else {
     visibleKeys.forEach((key) => next.add(key));
   }
-  localFilterDraft.value = { ...draft, values: next };
+  localFilterDraft.value = { ...draft, values: next, touched: true };
 }
 
 async function applyLocalFilter() {
   const draft = localFilterDraft.value;
   if (!draft) return;
+  if (draft.mode === "server") {
+    await applyServerColumnFilter(draft);
+    return;
+  }
   if (canApplyTypedLocalFilterValue.value && localFilterDraftIsAllSelected.value && localFilterOptions.value.length === 0) {
     await applyTypedLocalFilterValue();
     return;
@@ -962,6 +1108,40 @@ async function applyLocalFilter() {
   localColumnFilters.value = next;
   closeLocalFilter();
   resetGridVerticalScroll();
+}
+
+async function applyServerColumnFilter(draft: LocalColumnFilterDraft) {
+  if (!draft.touched && !localFilterSearch.value.trim()) {
+    closeLocalFilter();
+    return;
+  }
+  if (canApplyTypedLocalFilterValue.value && serverFilterOptions.value.length === 0) {
+    await applyTypedLocalFilterValue();
+    return;
+  }
+  const columnName = props.result.columns[draft.columnIndex];
+  if (!columnName) return;
+  const values = [...draft.values].flatMap((key) => {
+    if (!serverFilterValueByKey.value.has(key)) return [];
+    return [serverFilterValueByKey.value.get(key)!];
+  });
+  if (values.length === 0) {
+    closeLocalFilter();
+    return;
+  }
+  const condition = await buildColumnValuesFilterCondition({
+    databaseType: resolvedDatabaseType.value,
+    columnName,
+    columnInfo: props.tableMeta?.columns.find((column) => column.name === columnName),
+    values,
+  });
+  if (!condition) return;
+  const next = { ...localColumnFilters.value };
+  delete next[draft.columnIndex];
+  localColumnFilters.value = next;
+  whereFilterInput.value = appendColumnValueFilterCondition(whereFilterInput.value, condition);
+  closeLocalFilter();
+  await applyWhereFilter();
 }
 
 async function applyTypedLocalFilterValue() {
@@ -995,6 +1175,17 @@ function clearLocalFilter(colIdx?: number) {
   closeLocalFilter();
   resetGridVerticalScroll();
 }
+
+watch(localFilterSearch, (value) => {
+  const draft = localFilterDraft.value;
+  if (!draft || draft.mode !== "server" || localFilterOpenColumn.value !== draft.columnIndex) return;
+  if (serverFilterSearchTimer !== undefined) {
+    window.clearTimeout(serverFilterSearchTimer);
+  }
+  serverFilterSearchTimer = window.setTimeout(() => {
+    void loadServerFilterValues(draft.columnIndex, value);
+  }, SERVER_COLUMN_FILTER_DEBOUNCE_MS);
+});
 
 function defaultStructuredFilterRule(): StructuredFilterRule {
   return {
@@ -2506,6 +2697,7 @@ const queryEditReadyTargetLabel = computed(() => props.tableMeta?.tableName ?? p
 const showKeylessEditWarning = computed(() => !!props.editable && !!props.tableMeta && canUseKeylessRowPredicate(props.databaseType, props.tableMeta.primaryKeys ?? []));
 const canShowWhereSearch = computed(() => !!props.onExecuteSql && !isResultsContext.value);
 const canUseWhereSearch = computed(() => !!props.tableMeta && !!props.onExecuteSql && !isResultsContext.value);
+const canUseServerColumnFilter = computed(() => canUseWhereSearch.value && !!props.connectionId && !!props.tableMeta);
 type DataGridTableMeta = NonNullable<typeof props.tableMeta>;
 const hiveTableTransactional = ref<boolean | undefined>(undefined);
 const canEditExistingRows = computed(() => !!props.customSaveHandler || canEditExistingTableRows(props.databaseType, hiveTableTransactional.value, props.tableMeta?.primaryKeys ?? []));
@@ -6637,6 +6829,9 @@ onUnmounted(() => {
   finishCellSelection();
   clearTimeout(highlightedColumnTimer);
   clearTimeout(_searchTimer);
+  if (serverFilterSearchTimer !== undefined) {
+    window.clearTimeout(serverFilterSearchTimer);
+  }
   clearInterval(_loadingTimer);
 });
 
@@ -7842,7 +8037,7 @@ const gridContextMenuItems = computed<ContextMenuItem[]>(() => {
                           </PopoverTrigger>
                           <PopoverContent align="start" side="bottom" class="w-[300px] max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-xl border bg-popover p-0 text-popover-foreground shadow-xl" @click.stop @keydown.stop>
                             <div class="border-b bg-muted/40 px-2 py-1.5 text-center text-xs font-semibold">
-                              {{ t("grid.localFilterFor", { column: col.name }) }}
+                              {{ columnFilterPanelTitle(col.name) }}
                             </div>
                             <div class="flex items-center gap-1.5 border-b px-2 py-1.5">
                               <Search class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -7855,6 +8050,14 @@ const gridContextMenuItems = computed<ContextMenuItem[]>(() => {
                               <span>{{ t("grid.value") }}</span>
                               <span class="text-right">{{ t("grid.count") }}</span>
                             </div>
+                            <div v-if="localFilterDraft?.mode === 'server' && (serverFilterLoading || serverFilterError || serverFilterLimited)" class="flex items-center gap-1.5 border-b px-2 py-1 text-[11px] text-muted-foreground">
+                              <Loader2 v-if="serverFilterLoading" class="h-3 w-3 animate-spin" />
+                              <span class="min-w-0 truncate">
+                                <template v-if="serverFilterLoading">{{ t("grid.loadingValues") }}</template>
+                                <template v-else-if="serverFilterError">{{ serverFilterError }}</template>
+                                <template v-else>{{ t("grid.serverValuesLimited", { count: SERVER_COLUMN_FILTER_LIMIT }) }}</template>
+                              </span>
+                            </div>
                             <div class="max-h-72 overflow-auto py-0.5">
                               <button v-for="option in localFilterOptions" :key="option.key" type="button" class="grid w-full grid-cols-[1.75rem_minmax(0,1fr)_3.5rem] items-center px-2 py-1 text-left text-xs hover:bg-accent" @click="toggleLocalFilterValue(option.key)">
                                 <span class="flex h-4 w-4 items-center justify-center rounded border" :class="localFilterDraft?.values.has(option.key) ? 'border-blue-600 bg-blue-600 text-white' : 'border-border bg-background text-foreground/70'">
@@ -7863,9 +8066,9 @@ const gridContextMenuItems = computed<ContextMenuItem[]>(() => {
                                 <span class="truncate font-mono" :class="{ 'italic text-muted-foreground': option.value === null }">
                                   {{ option.label }}
                                 </span>
-                                <span class="text-right tabular-nums text-muted-foreground text-xs">{{ option.count }}</span>
+                                <span class="text-right tabular-nums text-muted-foreground text-xs">{{ option.count ?? "" }}</span>
                               </button>
-                              <div v-if="localFilterAllOptions.length > localFilterOptions.length" class="px-2 py-0.5 text-center text-[10px] text-muted-foreground">
+                              <div v-if="localFilterDraft?.mode === 'local' && localFilterAllOptions.length > localFilterOptions.length" class="px-2 py-0.5 text-center text-[10px] text-muted-foreground">
                                 {{
                                   t("grid.moreValues", {
                                     count: localFilterAllOptions.length - localFilterOptions.length,
@@ -7878,7 +8081,7 @@ const gridContextMenuItems = computed<ContextMenuItem[]>(() => {
                                   {{ t("grid.filterTypedValue", { value: localFilterTypedValue }) }}
                                 </span>
                               </button>
-                              <div v-if="localFilterOptions.length === 0 && !canApplyTypedLocalFilterValue" class="px-2 py-6 text-center text-xs text-muted-foreground">
+                              <div v-if="localFilterOptions.length === 0 && !canApplyTypedLocalFilterValue && !serverFilterLoading" class="px-2 py-6 text-center text-xs text-muted-foreground">
                                 {{ t("grid.noSearchResults") }}
                               </div>
                             </div>
@@ -7897,6 +8100,16 @@ const gridContextMenuItems = computed<ContextMenuItem[]>(() => {
                             </div>
                           </PopoverContent>
                         </Popover>
+                        <button
+                          v-if="!compactColumnHeaderActions && canUseServerColumnFilter"
+                          type="button"
+                          class="flex h-4 w-4 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-foreground"
+                          :class="localFilterOpenColumn === col.actualColIdx && localFilterDraft?.mode === 'server' ? 'text-primary opacity-100' : 'opacity-80'"
+                          :title="t('grid.databaseValueFilter')"
+                          @click.stop="openLocalFilter(col.actualColIdx, 'server')"
+                        >
+                          <Database class="h-3.5 w-3.5" />
+                        </button>
                       </span>
                       <div data-column-resize-handle class="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/30" @mousedown.stop="onResizeStart(col.visibleColIdx, $event)" @dblclick.stop="autoFitColumn(col.visibleColIdx)" />
                     </div>
