@@ -22,7 +22,7 @@ import * as api from "@/lib/api";
 import type { RedisKeyInfo, RedisScanResult, RedisValue, HistoryEntry } from "@/lib/api";
 import { uuid } from "@/lib/utils";
 import { useConnectionStore } from "@/stores/connectionStore";
-import { buildRedisKeyTree, collectExpandedGroupIds, collectRedisGroupKeyRaws, flattenVisibleRedisKeyTree, mergeKeysIntoRedisKeyTree, redisKeyToFlatTreeRow, type RedisKeyTreeNode } from "@/lib/redisKeyTree";
+import { buildRedisKeyTree, collectExpandedGroupIds, collectRedisGroupKeyRaws, flattenVisibleRedisKeyTree, mergeKeysIntoRedisKeyTree, redisKeyNameCopyText, redisKeyToFlatTreeRow, type RedisKeyTreeNode } from "@/lib/redisKeyTree";
 import { classifyRedisCommandSafety } from "@/lib/redisCommandSafety";
 import { isRedisMutatingCommand } from "@/lib/redisCommandTable";
 import { isRedisClearScreenCommand, nextRedisCommandDb, redisKeyTextToRaw } from "@/lib/redisCommandSession";
@@ -427,9 +427,9 @@ function requestGroupDelete(node: RedisKeyTreeNode, event: Event) {
   showDangerConfirm.value = true;
 }
 
-async function copyRedisKeyName(keyRaw: string) {
+async function copyRedisKeyName(keyName: string) {
   try {
-    await copyToClipboard(keyRaw);
+    await copyToClipboard(keyName);
     toast(t("redis.copied"), 2000);
   } catch (e: any) {
     toast(t("grid.copyFailed", { message: e?.message || String(e) }), 5000);
@@ -437,12 +437,13 @@ async function copyRedisKeyName(keyRaw: string) {
 }
 
 function redisKeyContextMenuItems(node: RedisKeyTreeNode): ContextMenuItem[] {
-  if (node.kind !== "leaf") return [];
+  const copyText = redisKeyNameCopyText(node);
+  if (copyText === null) return [];
   return [
     {
       label: t("redis.copyKeyName"),
       icon: Copy,
-      action: () => copyRedisKeyName(node.keyRaw),
+      action: () => copyRedisKeyName(copyText),
     },
   ];
 }
