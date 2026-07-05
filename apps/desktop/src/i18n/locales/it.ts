@@ -2980,6 +2980,8 @@ export default withEnglishFallback({
     project: "Progetto",
     openSource: "Repository open-source",
     officialDocs: "Documenti ufficiali",
+    shortcutUppercaseSelection: "Converti selezione in maiuscolo",
+    shortcutLowercaseSelection: "Converti selezione in minuscolo",
   },
   driverStore: {
     progressJreExtract: "Estrazione JRE...",
