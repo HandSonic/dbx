@@ -4125,6 +4125,20 @@ function cellIsCurrentMatch(displayRow: number, col: number): boolean {
   return m.kind === "cell" && m.displayRow === displayRow && m.col === col;
 }
 
+// Transpose view renders fields as rows; a column-name match (displayRow = -1)
+// maps to the field row header at the field's column index.
+function transposeHeaderIsSearchMatch(fieldIndex: number): boolean {
+  if (isScrolling.value) return false;
+  return searchMatchSet.value.has(`column:-1:${fieldIndex}`);
+}
+
+function transposeHeaderIsCurrentMatch(fieldIndex: number): boolean {
+  if (isScrolling.value) return false;
+  const m = currentSearchMatch.value;
+  if (!m) return false;
+  return m.kind === "column" && m.col === fieldIndex;
+}
+
 function navigateMatch(delta: number) {
   const total = searchMatches.value.length;
   if (total === 0) return;
@@ -4136,6 +4150,10 @@ function scrollToCurrentMatch() {
   const idx = currentMatchIndex.value;
   if (idx < 0 || idx >= searchMatches.value.length) return;
   const match = searchMatches.value[idx];
+  if (showTranspose.value) {
+    scrollTransposeMatchIntoView(match);
+    return;
+  }
   const visibleColIdx = visibleColumnIndexes.value.indexOf(match.col);
   if (visibleColIdx >= 0) scrollGridColumnIntoView(visibleColIdx);
   if (match.kind === "column") {
@@ -4160,6 +4178,27 @@ function scrollToCurrentMatch() {
   }
   const rowEl = scrollEl.querySelector(`[data-row-index="${match.displayRow}"]`) as HTMLElement | null;
   if (rowEl) rowEl.scrollIntoView({ block: "center" });
+}
+
+// In transpose view records are columns (horizontal) and fields are rows
+// (vertical). Bring the matched record column into the horizontal viewport and
+// the matched field row into the vertical viewport.
+function scrollTransposeMatchIntoView(match: SearchMatch) {
+  nextTick(() => {
+    const scroller = transposeScrollRef.value;
+    // Both match kinds use `col` as the field (transpose row) index: cell
+    // matches store the field/value index, column-name matches store the field.
+    const fieldIndex = match.col;
+    if (scroller && !(scroller instanceof HTMLElement)) {
+      // RecycleScroller component instance exposes scrollToItem via vue-virtual-scroller.
+      (scroller as { scrollToItem?: (index: number) => void }).scrollToItem?.(fieldIndex);
+    } else if (scroller instanceof HTMLElement) {
+      scroller.scrollTop = fieldIndex * 30;
+    }
+    if (match.kind === "cell") {
+      scrollTransposeRecordIntoView(match.displayRow);
+    }
+  });
 }
 
 function getRowItem(rowId: number): RowItem | undefined {
@@ -8774,9 +8813,17 @@ const gridContextMenuItems = computed<ContextMenuItem[]>(() => {
                     <div class="shrink-0" :style="{ width: `${transposeAfterSpacerWidth}px` }" />
                   </div>
                 </template>
-                <template #default="{ item }">
+                <template #default="{ item, index }">
                   <div class="data-grid-transpose-row flex border-b border-border/60" :style="{ height: '30px', width: `${transposeTotalWidth}px` }">
-                    <div class="sticky left-0 z-10 flex shrink-0 items-center border-r border-border bg-background px-3 py-0 font-medium truncate" :style="{ width: `${transposePinnedWidth}px` }" :title="item.column">
+                    <div
+                      class="sticky left-0 z-10 flex shrink-0 items-center border-r border-border bg-background px-3 py-0 font-medium truncate"
+                      :class="{
+                        'bg-yellow-200/60 dark:bg-yellow-500/20': transposeHeaderIsSearchMatch(visibleColumnIndexes[index]),
+                        'ring-2 ring-inset ring-yellow-500 bg-yellow-300/60 dark:bg-yellow-500/40': transposeHeaderIsCurrentMatch(visibleColumnIndexes[index]),
+                      }"
+                      :style="{ width: `${transposePinnedWidth}px` }"
+                      :title="item.column"
+                    >
                       {{ item.column }}
                     </div>
                     <div class="shrink-0" :style="{ width: `${transposeBeforeSpacerWidth}px` }" />
@@ -8792,6 +8839,8 @@ const gridContextMenuItems = computed<ContextMenuItem[]>(() => {
                         'row-cell-selected-dirty': transposeRecordUsesSelectionVisual(cell.recordIndex) && !transposeCellIsSelected(cell.recordIndex, cell.valueIndex) && displayItems[cell.recordIndex]?.isDirtyCol[cell.valueIndex],
                         'bg-primary/15': transposeRecordUsesActiveHighlight(cell.recordIndex) && !transposeRecordUsesSelectionVisual(cell.recordIndex) && !displayItems[cell.recordIndex]?.isDirtyCol[cell.valueIndex] && !transposeCellIsSelected(cell.recordIndex, cell.valueIndex),
                         'bg-yellow-500/10 cell-dirty': displayItems[cell.recordIndex]?.isDirtyCol[cell.valueIndex],
+                        'bg-yellow-200/60 dark:bg-yellow-500/20': cellIsSearchMatch(cell.recordIndex, cell.valueIndex),
+                        'ring-2 ring-inset ring-yellow-500 bg-yellow-300/60 dark:bg-yellow-500/40': cellIsCurrentMatch(cell.recordIndex, cell.valueIndex),
                         'cursor-text': !isScrolling && canEditCellItem(displayItems[cell.recordIndex], cell.valueIndex),
                         'hover:bg-gray-200 dark:hover:bg-gray-800':
                           !isScrolling && canEditCellItem(displayItems[cell.recordIndex], cell.valueIndex) && !transposeRecordUsesSelectionVisual(cell.recordIndex) && !transposeRecordUsesActiveHighlight(cell.recordIndex) && !transposeCellIsSelected(cell.recordIndex, cell.valueIndex),
