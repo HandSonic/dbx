@@ -57,6 +57,14 @@ function sqlServerConn(id: string): ConnectionConfig {
   };
 }
 
+function sparkConn(id: string): ConnectionConfig {
+  return {
+    ...conn(id),
+    db_type: "spark",
+    port: 10000,
+  };
+}
+
 function withConnectionHealthMock(handler: typeof fetch): typeof fetch {
   return async (input, init) => {
     if (String(input) === "/api/connection/check-health") {
@@ -3687,6 +3695,52 @@ test("query execution is scoped to the tab client session", async () => {
 
     assert.equal(executeBody.clientSessionId, tabId);
     assert.equal(executeBody.timeoutSecs, 30);
+  } finally {
+    globalThis.fetch = originalFetch;
+    restoreStorage();
+  }
+});
+
+test("Spark query execution applies the selected database as schema context", async () => {
+  const restoreStorage = installMemoryStorage();
+  setActivePinia(createPinia());
+  const connectionStore = useConnectionStore();
+  const store = useQueryStore();
+  const originalFetch = globalThis.fetch;
+
+  connectionStore.addEphemeralConnection(sparkConn("spark-1"));
+  const tabId = store.createTab("spark-1", "ai_test", "Query");
+  let executeBody: any;
+
+  globalThis.fetch = withConnectionHealthMock(async (input, init) => {
+    const url = String(input);
+    if (url === "/api/query/prepare-pagination-plan") {
+      return new Response(JSON.stringify({ sqlToExecute: "select * from user_orders_v2", useAgentResultSession: false }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url === "/api/query/execute-multi") {
+      executeBody = JSON.parse(String(init?.body ?? "{}"));
+      return new Response(JSON.stringify([{ columns: ["order_id"], rows: [["ORD001"]], affected_rows: 0, execution_time_ms: 1 }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url === "/api/query/analyze-editability") {
+      return new Response(JSON.stringify({ editable: false, reason: "complex-source" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response("unexpected request", { status: 500 });
+  });
+
+  try {
+    await store.executeTabSql(tabId, "select * from user_orders_v2");
+
+    assert.equal(executeBody.database, "ai_test");
+    assert.equal(executeBody.schema, "ai_test");
   } finally {
     globalThis.fetch = originalFetch;
     restoreStorage();

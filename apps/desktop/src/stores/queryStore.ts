@@ -35,7 +35,7 @@ import { dataTabExecutionDatabase } from "@/lib/table/dataTabExecutionDatabase";
 import { tableOpenPageLimit } from "@/lib/table/tableOpenPageLimit";
 import { loadTableMetadata } from "@/lib/metadata/tableMetadataCache";
 import { quoteTableIdentifier } from "@/lib/table/tableSelectSql";
-import { connectionUsesDatabaseObjectTreeMode, connectionUsesSchemaExecutionContext, effectiveDatabaseTypeForConnection, metadataSchemaForConnection } from "@/lib/database/jdbcDialect";
+import { connectionQueryExecutionSchema, effectiveDatabaseTypeForConnection, metadataSchemaForConnection } from "@/lib/database/jdbcDialect";
 import { frontendQueryTimeoutSecsForSql, queryTimeoutSecsForConnection } from "@/lib/sql/queryTimeout";
 import { queryResultSourceLabel } from "@/lib/sql/queryResultSource";
 import { sortDataGridRows, type DataGridSortDirection } from "@/lib/dataGrid/dataGridSort";
@@ -2670,7 +2670,7 @@ export const useQueryStore = defineStore("query", () => {
         pageOffset = options?.pagination?.offset ?? 0;
       }
 
-      const executionSchema = connectionUsesSchemaExecutionContext(conn) ? tab.schema || tab.database : tab.mode === "data" || connectionUsesDatabaseObjectTreeMode(conn) ? undefined : tab.schema;
+      const executionSchema = connectionQueryExecutionSchema(conn, tab.database, tab.schema, tab.mode === "data");
       const frontendTimeoutSecs = frontendQueryTimeoutSecsForSql(sqlToExecute, effectiveDbType, queryTimeoutSecs);
       const sourceLabelDatabase = tab.database || conn?.database;
 
