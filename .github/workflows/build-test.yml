@@ -70,8 +70,8 @@ jobs:
         if: startsWith(matrix.platform, 'windows')
         shell: bash
         run: |
-          choco install openssl -y
-          echo "OPENSSL_DIR=C:/Program Files/OpenSSL-Win64" >> "$GITHUB_ENV"
+          vcpkg install openssl:x64-windows
+          echo "OPENSSL_DIR=C:/vcpkg/installed/x64-windows" >> "$GITHUB_ENV"
           echo "OPENSSL_NO_VENDOR=1" >> "$GITHUB_ENV"
 
       - name: Build Tauri app
