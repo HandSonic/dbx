@@ -58,6 +58,7 @@ import { normalizeShortcutSettings, shortcutToCodeMirrorKey } from "@/lib/editor
 import { trimmedSelectionLayer } from "@/lib/editor/codemirrorTrimmedSelectionLayer";
 import { selectionMatchOccurrences } from "@/lib/editor/codemirrorSelectionMatches";
 import { createInsertValueHintsExtension, requestInsertValueHintsRefresh } from "@/lib/editor/codemirrorInsertValueHints";
+import { focusEditorView } from "@/lib/editor/queryEditorFocus";
 import { createDbxCodeMirrorSqlDialect } from "@/lib/editor/codemirrorSqlDialect";
 import { startsQueryEditorRectangularSelection } from "@/lib/editor/queryEditorPointerSelection";
 import { isSchemaAware, isSingleDatabase, supportsSqlInListPaste } from "@/lib/database/databaseFeatureSupport";
@@ -82,6 +83,7 @@ const props = defineProps<{
   executionError?: string;
   executionErrorSql?: string;
   readOnly?: boolean;
+  autoFocus?: boolean;
   forceWordWrap?: boolean;
   hideExecutionControls?: boolean;
   initialViewport?: { scrollTop: number; scrollLeft: number };
@@ -3120,6 +3122,15 @@ onMounted(async () => {
   cachedCompletionObjects = [];
   scheduleSemanticDiagnostics();
 
+  if (props.autoFocus) {
+    // Query tabs opt in; shared editor instances must preserve the surrounding UI focus.
+    nextTick(() => {
+      requestAnimationFrame(() => {
+        focusEditorView(view.value);
+      });
+    });
+  }
+
   // Ensure theme is applied with the latest settings after mount
   void nextTick(async () => {
     if (!view.value || !codeMirrorTheme) return;
@@ -3369,8 +3380,7 @@ function restoreEditorSelection() {
 
 function restoreEditorFocus() {
   const focusEditorAcrossFrames = () => {
-    if (!view.value || view.value.hasFocus) return;
-    view.value.focus();
+    focusEditorView(view.value);
   };
   focusEditorAcrossFrames();
   nextTick(() => {
