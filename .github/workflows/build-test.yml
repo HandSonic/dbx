@@ -66,6 +66,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev xdg-utils
 
+      - name: Disable updater in tauri config
+        shell: bash
+        run: |
+          # Remove pubkey and disable updater to avoid signing requirement
+          python3 -c "
+          import json
+          with open('src-tauri/tauri.conf.json', 'r') as f:
+              cfg = json.load(f)
+          if 'plugins' in cfg and 'updater' in cfg['plugins']:
+              cfg['plugins']['updater']['active'] = False
+              cfg['plugins']['updater'].pop('pubkey', None)
+          with open('src-tauri/tauri.conf.json', 'w') as f:
+              json.dump(cfg, f, indent=2)
+          "
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
@@ -76,7 +91,7 @@ jobs:
           releaseBody: "Test build with KingBase trigger fix"
           releaseDraft: true
           prerelease: false
-          args: --target ${{ matrix.target }} --config '{"plugins":{"updater":{"active":false,"pubkey":""}}}'
+          args: --target ${{ matrix.target }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
