@@ -563,7 +563,35 @@ public final class KingbaseAgent extends PostgresLikeAgent {
     @Override
     public List<TriggerInfo> listTriggers(String schema, String table) {
         if (postgresCatalogMode) return super.listTriggers(schema, table);
-        return Collections.emptyList();
+        return unchecked(() -> {
+            List<TriggerInfo> result = new ArrayList<>();
+            String sql = "SELECT tg.tgname AS trigger_name, " +
+                "trim(trailing ',' FROM (" +
+                "CASE WHEN (tg.tgtype & 4) <> 0 THEN 'INSERT,' ELSE '' END || " +
+                "CASE WHEN (tg.tgtype & 8) <> 0 THEN 'DELETE,' ELSE '' END || " +
+                "CASE WHEN (tg.tgtype & 16) <> 0 THEN 'UPDATE,' ELSE '' END || " +
+                "CASE WHEN (tg.tgtype & 32) <> 0 THEN 'TRUNCATE,' ELSE '' END" +
+                ")) AS event_manipulation, " +
+                "CASE WHEN (tg.tgtype & 2) <> 0 THEN 'BEFORE' ELSE 'AFTER' END AS action_timing " +
+                "FROM sys_catalog.sys_trigger tg " +
+                "JOIN sys_catalog.sys_class c ON c.oid = tg.tgrelid " +
+                "JOIN sys_catalog.sys_namespace n ON n.oid = c.relnamespace " +
+                "WHERE n.nspname = " + sqlString(effectiveSchema(schema)) +
+                " AND c.relname = " + sqlString(table) + " AND NOT tg.tgisinternal " +
+                "ORDER BY tg.tgname";
+            try (Statement stmt = requireConnected().createStatement()) {
+                try (ResultSet rs = stmt.executeQuery(sql)) {
+                    while (rs.next()) {
+                        result.add(new TriggerInfo(
+                            rs.getString("trigger_name"),
+                            rs.getString("event_manipulation"),
+                            rs.getString("action_timing")
+                        ));
+                    }
+                }
+            }
+            return result;
+        });
     }
 
     @Override
