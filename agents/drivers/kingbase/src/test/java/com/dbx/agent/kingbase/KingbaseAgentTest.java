@@ -224,6 +224,56 @@ class KingbaseAgentTest extends JdbcFakeExecutionBehaviorTest {
     }
 
     @Test
+    void regularListTriggersUsesSysCatalogTrigger() {
+        List<String> sql = new ArrayList<>();
+        KingbaseAgent agent = new KingbaseAgent();
+        TestSupport.setPrivateConnection(agent, preparedConnection(sql, resultSet(
+            new String[]{"trigger_name", "event_manipulation", "action_timing"},
+            new Object[][]{
+                {"trg_before_insert", "INSERT", "BEFORE"},
+                {"trg_after_update", "UPDATE", "AFTER"}
+            }
+        )));
+
+        List<TriggerInfo> triggers = agent.listTriggers("public", "app_table");
+
+        Assertions.assertEquals(2, triggers.size());
+        Assertions.assertEquals("trg_before_insert", triggers.get(0).getName());
+        Assertions.assertEquals("INSERT", triggers.get(0).getEvent());
+        Assertions.assertEquals("BEFORE", triggers.get(0).getTiming());
+        Assertions.assertEquals("trg_after_update", triggers.get(1).getName());
+        Assertions.assertEquals("UPDATE", triggers.get(1).getEvent());
+        Assertions.assertEquals("AFTER", triggers.get(1).getTiming());
+        Assertions.assertTrue(sql.get(0).contains("FROM sys_catalog.sys_trigger"), sql.get(0));
+        Assertions.assertTrue(sql.get(0).contains("sys_catalog.sys_class"), sql.get(0));
+        Assertions.assertTrue(sql.get(0).contains("sys_catalog.sys_namespace"), sql.get(0));
+        Assertions.assertTrue(sql.get(0).contains("NOT tg.tgisinternal"), sql.get(0));
+        Assertions.assertFalse(sql.get(0).contains("pg_catalog"), sql.get(0));
+    }
+
+    @Test
+    void postgresCompatListTriggersUsesPgCatalogTrigger() throws Exception {
+        List<String> sql = new ArrayList<>();
+        KingbaseAgent agent = new KingbaseAgent();
+        Connection connection = postgresCatalogConnection(sql, resultSet(
+            new String[]{"trigger_name", "event_manipulation", "action_timing"},
+            new Object[][]{{"trg_insert", "INSERT", "AFTER"}}
+        ));
+
+        Method afterConnect = KingbaseAgent.class.getDeclaredMethod("afterConnect", ConnectParams.class, Connection.class);
+        afterConnect.setAccessible(true);
+        afterConnect.invoke(agent, new ConnectParams(), connection);
+        TestSupport.setPrivateConnection(agent, connection);
+
+        List<TriggerInfo> triggers = agent.listTriggers("public", "app_table");
+
+        Assertions.assertEquals(1, triggers.size());
+        Assertions.assertEquals("trg_insert", triggers.get(0).getName());
+        // Skip first 3 SQL statements (mode detection queries)
+        Assertions.assertTrue(sql.get(3).contains("FROM pg_catalog.pg_trigger"), sql.get(3));
+    }
+
+    @Test
     void constrainedRegularTableMetadataPushesFilterTypesAndPaging() {
         List<String> sql = new ArrayList<>();
         KingbaseAgent agent = new KingbaseAgent();
