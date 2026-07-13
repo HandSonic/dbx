@@ -51,6 +51,7 @@ import {
   Check,
   UsersRound,
   Activity,
+  Gauge,
   CalendarClock,
   Lock,
   HardDriveDownload,
@@ -146,6 +147,7 @@ import { selectedTreeNodesInVisibleOrder as orderSelectedTreeNodes, treeSelectio
 import { connectionPasteTargetGroupId, selectedConnectionClipboardTargets, selectedConnectionDeleteTargets, selectedConnectionDuplicateTargets, selectedConnectionEditTarget } from "@/lib/sidebar/sidebarConnectionSelection";
 import { supportsDatabaseUserAdmin } from "@/lib/database/databaseUserAdmin";
 import { supportsProcessList } from "@/lib/database/mysqlProcessList";
+import { connectionSupportsServerDashboard } from "@/lib/database/mysqlServerStatus";
 import { canCloseSidebarDatabaseConnection, isSidebarDatabaseOpened } from "@/lib/sidebar/sidebarDatabaseOpenState";
 import { sidebarTreeContextKey } from "@/lib/sidebar/sidebarTreeContext";
 import { batchTableEmptyFeedback, runBatchTableEmpty } from "@/lib/sidebar/batchTableEmpty";
@@ -579,12 +581,14 @@ async function toggle() {
   const databaseObjectGroup = node.type === "group-tables" || node.type === "group-views" || node.type === "group-materialized-views" || node.type === "group-procedures" || node.type === "group-functions" || node.type === "group-sequences" || node.type === "group-packages";
   if (databaseObjectGroup && connectionStore.isTreeNodeChildrenLoaded(node.id)) {
     node.isExpanded = !node.isExpanded;
+    if (wasExpanded) connectionStore.releaseCollapsedTreeNodeChildren(node.id);
     emit("node-toggled", node, wasExpanded);
     return;
   }
 
   if (node.isExpanded) {
     node.isExpanded = false;
+    connectionStore.releaseCollapsedTreeNodeChildren(node.id);
     emit("node-toggled", node, wasExpanded);
     return;
   }
@@ -1165,6 +1169,18 @@ async function openProcessList() {
   }
 }
 
+async function openMysqlDashboard() {
+  const node = props.node;
+  if (!node.connectionId) return;
+  try {
+    await connectionStore.ensureConnected(node.connectionId);
+    connectionStore.activeConnectionId = node.connectionId;
+    queryStore.openMysqlDashboard(node.connectionId);
+  } catch (e: any) {
+    toast(t("connection.connectFailed", { message: translateBackendError(t, e?.message || String(e)) }), 5000);
+  }
+}
+
 async function openDamengJobAdmin() {
   const node = props.node;
   if (!node.connectionId) return;
@@ -1300,6 +1316,7 @@ async function openData() {
     tabId,
     cachedTableMeta ?? {
       catalog: node.catalog,
+      database: node.database,
       schema: tableSchema,
       tableName: node.label,
       tableType,
@@ -1409,6 +1426,7 @@ async function openData() {
       databaseType: effectiveDbType,
       identifierQuote: connectionStore.connectionIdentifierQuote?.(node.connectionId),
       schema: tableSchema,
+      database: node.database,
       tableName: node.label,
       tableType,
       catalog: node.catalog,
@@ -4711,6 +4729,9 @@ function treeItemMenuItems(): ContextMenuItem[] {
     }
     if (supportsProcessList(currentDatabaseType())) {
       items.push({ label: t("contextMenu.processList"), action: openProcessList, icon: Activity });
+    }
+    if (node.connectionId && connectionSupportsServerDashboard(connectionStore.getConfig(node.connectionId))) {
+      items.push({ label: t("contextMenu.serverDashboard"), action: openMysqlDashboard, icon: Gauge });
     }
     if (currentDatabaseType() === "dameng") {
       items.push({ label: t("contextMenu.damengJobAdmin"), action: openDamengJobAdmin, icon: CalendarClock });
