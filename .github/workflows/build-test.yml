@@ -69,14 +69,13 @@ jobs:
       - name: Disable updater in tauri config
         shell: bash
         run: |
-          # Remove pubkey and disable updater to avoid signing requirement
+          # Remove updater plugin entirely to avoid signing requirement
           python3 -c "
           import json
           with open('src-tauri/tauri.conf.json', 'r') as f:
               cfg = json.load(f)
           if 'plugins' in cfg and 'updater' in cfg['plugins']:
-              cfg['plugins']['updater']['active'] = False
-              cfg['plugins']['updater'].pop('pubkey', None)
+              del cfg['plugins']['updater']
           with open('src-tauri/tauri.conf.json', 'w') as f:
               json.dump(cfg, f, indent=2)
           "
