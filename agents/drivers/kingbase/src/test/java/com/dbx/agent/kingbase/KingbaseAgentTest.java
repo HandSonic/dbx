@@ -270,8 +270,9 @@ class KingbaseAgentTest extends JdbcFakeExecutionBehaviorTest {
 
         Assertions.assertEquals(1, triggers.size());
         Assertions.assertEquals("trg_insert", triggers.get(0).getName());
-        // Skip first 3 SQL statements (mode detection queries)
-        Assertions.assertTrue(sql.get(3).contains("FROM pg_catalog.pg_trigger"), sql.get(3));
+        // Verify the last SQL statement uses pg_catalog.pg_trigger
+        String lastSql = sql.get(sql.size() - 1);
+        Assertions.assertTrue(lastSql.contains("FROM pg_catalog.pg_trigger"), lastSql);
     }
 
     @Test
