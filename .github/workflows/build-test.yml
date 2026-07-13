@@ -70,11 +70,16 @@ jobs:
         shell: bash
         run: |
           # Generate dummy signing key (Tauri requires it when pubkey is in config)
-          mkdir -p "$RUNNER_TEMP/tauri-keys"
-          pnpm tauri signer generate -w "$RUNNER_TEMP/tauri-keys" -p "" 2>&1 || true
-          if [ -f "$RUNNER_TEMP/tauri-keys/key" ]; then
-            export TAURI_SIGNING_PRIVATE_KEY="$(cat "$RUNNER_TEMP/tauri-keys/key")"
+          KEY_DIR="$RUNNER_TEMP/tauri-keys-$$"
+          mkdir -p "$KEY_DIR"
+          pnpm tauri signer generate -w "$KEY_DIR" -p "" --force 2>&1 || true
+          if [ -f "$KEY_DIR/key" ]; then
+            export TAURI_SIGNING_PRIVATE_KEY="$(cat "$KEY_DIR/key")"
             export TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""
+            echo "Signing key generated successfully"
+          else
+            echo "WARNING: Could not generate signing key, key file not found"
+            ls -la "$KEY_DIR" || true
           fi
           pnpm tauri build --target ${{ matrix.target }}
 
