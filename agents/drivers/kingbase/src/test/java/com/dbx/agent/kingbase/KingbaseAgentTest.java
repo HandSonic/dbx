@@ -225,26 +225,25 @@ class KingbaseAgentTest extends JdbcFakeExecutionBehaviorTest {
     }
 
     @Test
-    void regularListTriggersUsesSysCatalogTrigger() {
+    void regularListTriggersDecodesTimingFromTgtype() {
         List<String> sql = new ArrayList<>();
         KingbaseAgent agent = new KingbaseAgent();
         TestSupport.setPrivateConnection(agent, preparedConnection(sql, resultSet(
-            new String[]{"trigger_name", "event_manipulation", "action_timing"},
+            new String[]{"trigger_name", "event_manipulation", "trigger_type"},
             new Object[][]{
-                {"trg_before_insert", "INSERT", "BEFORE"},
-                {"trg_after_update", "UPDATE", "AFTER"}
+                {"trg_instead_update", "UPDATE", 1 | 16 | 64},
+                {"trg_before_insert", "INSERT", 2 | 4},
+                {"trg_after_update", "UPDATE", 16}
             }
         )));
 
         List<TriggerInfo> triggers = agent.listTriggers("public", "app_table");
 
-        Assertions.assertEquals(2, triggers.size());
-        Assertions.assertEquals("trg_before_insert", triggers.get(0).getName());
-        Assertions.assertEquals("INSERT", triggers.get(0).getEvent());
-        Assertions.assertEquals("BEFORE", triggers.get(0).getTiming());
-        Assertions.assertEquals("trg_after_update", triggers.get(1).getName());
-        Assertions.assertEquals("UPDATE", triggers.get(1).getEvent());
-        Assertions.assertEquals("AFTER", triggers.get(1).getTiming());
+        Assertions.assertEquals(3, triggers.size());
+        Assertions.assertEquals("INSTEAD OF", triggers.get(0).getTiming());
+        Assertions.assertEquals("BEFORE", triggers.get(1).getTiming());
+        Assertions.assertEquals("AFTER", triggers.get(2).getTiming());
+        Assertions.assertTrue(sql.get(0).contains("tg.tgtype AS trigger_type"), sql.get(0));
         Assertions.assertTrue(sql.get(0).contains("FROM sys_catalog.sys_trigger"), sql.get(0));
         Assertions.assertTrue(sql.get(0).contains("sys_catalog.sys_class"), sql.get(0));
         Assertions.assertTrue(sql.get(0).contains("sys_catalog.sys_namespace"), sql.get(0));
@@ -623,6 +622,10 @@ class KingbaseAgentTest extends JdbcFakeExecutionBehaviorTest {
                     if (booleanValue instanceof Boolean) return booleanValue;
                     if (booleanValue instanceof Number) return ((Number) booleanValue).intValue() != 0;
                     return Boolean.parseBoolean(String.valueOf(booleanValue));
+                case "getInt":
+                    Object intValue = columnValue(columns, rows[index[0]], args[0]);
+                    if (intValue instanceof Number) return ((Number) intValue).intValue();
+                    return Integer.parseInt(String.valueOf(intValue));
                 case "getObject":
                     return columnValue(columns, rows[index[0]], args[0]);
                 case "wasNull":
