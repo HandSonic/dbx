@@ -374,8 +374,12 @@ where
         let mut entries = select_entries(&database_entries(&client, &request.database).await?, &request.collections)?;
         progress.collections_total = entries.len();
         let target = PathBuf::from(&request.file_path);
-        if request.format == MongoDumpFormat::Directory && target.exists() {
-            return Err("Dump destination already exists; choose a new directory".into());
+        if target.exists() {
+            return Err(match request.format {
+                MongoDumpFormat::Directory => "Dump destination already exists; choose a new directory",
+                MongoDumpFormat::Archive => "Dump destination already exists; choose a new archive file",
+            }
+            .into());
         }
         let parent = target.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or(Path::new("."));
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -445,6 +449,9 @@ where
                         archive::pack(writer, &entries, &server_version, || cancelled(&flag))
                     })?;
                     cancelled(&flag)?;
+                    if target.exists() {
+                        return Err("Dump destination already exists".into());
+                    }
                     temp.persist(&target).map_err(|e| e.to_string())?;
                 }
                 MongoDumpFormat::Directory => {
