@@ -541,7 +541,7 @@ pub struct McpHttpServerSettings {
 /// Configuration for the optional DBX Web MCP endpoint. The bearer token is
 /// deliberately kept out of this JSON and stored through the encrypted secret
 /// store instead.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WebMcpSettings {
     #[serde(default)]
@@ -550,12 +550,6 @@ pub struct WebMcpSettings {
     pub allowed_hosts: Vec<String>,
     #[serde(default)]
     pub allowed_origins: Vec<String>,
-}
-
-impl Default for WebMcpSettings {
-    fn default() -> Self {
-        Self { enabled: false, allowed_hosts: Vec::new(), allowed_origins: Vec::new() }
-    }
 }
 
 impl Default for McpHttpServerSettings {
