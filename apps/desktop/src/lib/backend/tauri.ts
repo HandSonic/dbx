@@ -815,7 +815,16 @@ export interface McpHttpServerStatus {
 export interface WebMcpHttpStatus {
   enabled: boolean;
   endpointPath: string;
-  tokenSource: "environment" | "file" | null;
+  tokenSource: "environment" | "file" | "managed" | null;
+  allowedHosts: string[];
+  allowedOrigins: string[];
+  deploymentManaged: boolean;
+  managementAvailable: boolean;
+  accessToken: string | null;
+}
+
+export interface WebMcpHttpSettings {
+  enabled: boolean;
   allowedHosts: string[];
   allowedOrigins: string[];
 }
@@ -837,7 +846,15 @@ export async function rotateMcpHttpServerToken(): Promise<McpHttpServerStatus> {
 }
 
 export async function loadWebMcpHttpStatus(): Promise<WebMcpHttpStatus> {
-  return { enabled: false, endpointPath: "/mcp", tokenSource: null, allowedHosts: [], allowedOrigins: [] };
+  return { enabled: false, endpointPath: "/mcp", tokenSource: null, allowedHosts: [], allowedOrigins: [], deploymentManaged: false, managementAvailable: false, accessToken: null };
+}
+
+export async function saveWebMcpHttpSettings(_settings: WebMcpHttpSettings): Promise<WebMcpHttpStatus> {
+  throw new Error("Web MCP settings are available only in DBX Web");
+}
+
+export async function rotateWebMcpToken(): Promise<WebMcpHttpStatus> {
+  throw new Error("Web MCP settings are available only in DBX Web");
 }
 
 export async function loadMaxAgentTurns(): Promise<number> {
