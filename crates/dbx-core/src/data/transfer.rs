@@ -3360,7 +3360,10 @@ pub fn map_column_type(source_type: &str, source_db: &DatabaseType, target_db: &
     // Extract basic type, `bigint unsigned` -> `bigint`
     base = base.split(' ').next().unwrap_or(base).trim();
 
-    if matches!(target_db, DatabaseType::Hive | DatabaseType::Kyuubi | DatabaseType::Impala | DatabaseType::Argo) {
+    if matches!(
+        target_db,
+        DatabaseType::Hive | DatabaseType::Kyuubi | DatabaseType::Impala | DatabaseType::Argo | DatabaseType::Transwarp
+    ) {
         return match base {
             "tinyint" => "TINYINT".into(),
             "smallint" | "int2" => "SMALLINT".into(),
@@ -3605,7 +3608,11 @@ fn generate_create_table_ddl_with_column_quoting(
             if !c.is_nullable
                 && !matches!(
                     target_db,
-                    DatabaseType::Hive | DatabaseType::Kyuubi | DatabaseType::Impala | DatabaseType::Argo
+                    DatabaseType::Hive
+                        | DatabaseType::Kyuubi
+                        | DatabaseType::Impala
+                        | DatabaseType::Argo
+                        | DatabaseType::Transwarp
                 )
             {
                 line.push_str(" NOT NULL");
@@ -3630,7 +3637,10 @@ fn generate_create_table_ddl_with_column_quoting(
     }
 
     let mut pks = Vec::with_capacity(columns.iter().filter(|c| c.is_primary_key).count());
-    if !matches!(target_db, DatabaseType::Hive | DatabaseType::Kyuubi | DatabaseType::Impala | DatabaseType::Argo) {
+    if !matches!(
+        target_db,
+        DatabaseType::Hive | DatabaseType::Kyuubi | DatabaseType::Impala | DatabaseType::Argo | DatabaseType::Transwarp
+    ) {
         for c in columns {
             if c.is_primary_key {
                 let qname = transfer_column_identifier(&c.name, target_db, quote_target_column_names);
@@ -3802,6 +3812,7 @@ pub(crate) fn generate_insert_typed_from_value_rows(
 struct InsertSqlTemplate {
     standard_prefix: String,
     oracle_into_prefix: Option<String>,
+    inceptor_select_prefix: Option<String>,
     xugu_multirow_values: bool,
 }
 
@@ -3843,6 +3854,8 @@ impl InsertSqlTemplate {
             standard_prefix: format!("INSERT INTO {full_table} ({col_list}){overriding} VALUES\n"),
             oracle_into_prefix: matches!(db_type, DatabaseType::Oracle)
                 .then(|| format!("INTO {full_table} ({col_list}) VALUES ")),
+            inceptor_select_prefix: (matches!(db_type, DatabaseType::Transwarp) && !columns.is_empty())
+                .then(|| format!("INSERT INTO {full_table} ({col_list})\n")),
             // Xugu accepts consecutive row constructors (`VALUES (...) (...)`) but rejects
             // the comma-separated multi-row form emitted by the generic template.
             xugu_multirow_values: matches!(db_type, DatabaseType::Xugu),
@@ -3852,6 +3865,22 @@ impl InsertSqlTemplate {
     fn build(&self, value_rows: &[String]) -> String {
         if value_rows.is_empty() {
             return String::new();
+        }
+        if let Some(prefix) = self.inceptor_select_prefix.as_deref() {
+            let mut sql = String::with_capacity(self.statement_bytes(
+                value_rows.iter().map(String::len).sum(),
+                value_rows.len(),
+                &DatabaseType::Transwarp,
+            ));
+            sql.push_str(prefix);
+            for (index, values) in value_rows.iter().enumerate() {
+                if index > 0 {
+                    sql.push_str("\nUNION ALL\n");
+                }
+                sql.push_str("SELECT ");
+                sql.push_str(values.strip_prefix('(').and_then(|row| row.strip_suffix(')')).unwrap_or(values));
+            }
+            return sql;
         }
         if let Some(into_prefix) = self.oracle_into_prefix.as_deref().filter(|_| value_rows.len() > 1) {
             let capacity = "INSERT ALL\n".len()
@@ -3891,6 +3920,12 @@ impl InsertSqlTemplate {
     }
 
     fn statement_bytes(&self, value_rows_bytes: usize, row_count: usize, db_type: &DatabaseType) -> usize {
+        if let Some(prefix) = self.inceptor_select_prefix.as_deref() {
+            return sql_text_bytes(prefix, db_type)
+                .saturating_add(value_rows_bytes.saturating_sub(2usize.saturating_mul(row_count)))
+                .saturating_add("SELECT ".len().saturating_mul(row_count))
+                .saturating_add("\nUNION ALL\n".len().saturating_mul(row_count.saturating_sub(1)));
+        }
         if let Some(into_prefix) = self.oracle_into_prefix.as_deref().filter(|_| row_count > 1) {
             return sql_text_bytes("INSERT ALL\n", db_type)
                 .saturating_add(sql_text_bytes(into_prefix, db_type).saturating_mul(row_count))
@@ -4315,7 +4350,14 @@ fn generate_upsert_typed_for_transfer(
 fn max_transfer_write_rows(db_type: &DatabaseType, mode: &TransferMode) -> usize {
     match (db_type, mode) {
         (DatabaseType::SqlServer, TransferMode::Append | TransferMode::Overwrite) => MAX_SQLSERVER_INSERT_ROWS,
-        (DatabaseType::Hive | DatabaseType::Kyuubi | DatabaseType::Impala | DatabaseType::Argo, _) => 500,
+        (
+            DatabaseType::Hive
+            | DatabaseType::Kyuubi
+            | DatabaseType::Impala
+            | DatabaseType::Argo
+            | DatabaseType::Transwarp,
+            _,
+        ) => 500,
         (DatabaseType::Oracle, TransferMode::Append | TransferMode::Overwrite) => MAX_ORACLE_INSERT_ALL_ROWS,
         (DatabaseType::Oracle, TransferMode::Upsert) => MAX_ORACLE_MERGE_ROWS,
         _ => usize::MAX,
@@ -8704,7 +8746,7 @@ async fn fetch_hive_server_transfer_batch(
     };
     let pool_handle = state.pool_handle(pool_key).await;
     let Some(PoolKind::Agent(client)) = pool_handle.as_ref() else {
-        return Err("Impala transfer requires an Agent connection".to_string());
+        return Err("Agent cursor transfer requires an Agent connection".to_string());
     };
     let client = client.clone();
 
@@ -9557,6 +9599,7 @@ where
                     | DatabaseType::Kyuubi
                     | DatabaseType::Impala
                     | DatabaseType::Argo
+                    | DatabaseType::Transwarp
             ))
         || matches!(target_db_type, DatabaseType::Postgres | DatabaseType::Dameng | DatabaseType::H2);
     let target_columns = if needs_target_columns {
@@ -9647,6 +9690,7 @@ where
                 | DatabaseType::Kyuubi
                 | DatabaseType::Impala
                 | DatabaseType::Argo
+                | DatabaseType::Transwarp
         ) {
             log::warn!("[transfer] upsert not supported for {:?}, falling back to append", target_db_type);
             (TransferMode::Append, vec![])
@@ -9757,9 +9801,11 @@ where
     // does not hold up mid-table.
     let mut keyset_indexes = transfer_keyset_column_indexes(&writable_columns, &primary_key_columns, source_db_type);
     let mut keyset_cursor: Vec<serde_json::Value> = Vec::new();
-    // A single Agent cursor keeps Kyuubi/Impala rows in one query execution.
+    // A single Agent cursor keeps Hive-family rows in one query execution. Inceptor
+    // rejects the generic LIMIT/OFFSET form, just like the other Agent cursor paths.
     // Re-running LIMIT/OFFSET pages is unstable for tables without a unique key.
-    let use_hive_server_cursor = matches!(source_db_type, DatabaseType::Kyuubi | DatabaseType::Impala);
+    let use_hive_server_cursor =
+        matches!(source_db_type, DatabaseType::Kyuubi | DatabaseType::Impala | DatabaseType::Transwarp);
     let hive_server_transfer_sql = use_hive_server_cursor.then(|| {
         transfer_cursor_sql(
             &col_names,
@@ -16743,6 +16789,37 @@ SELECT 1 FROM dual"#
         );
 
         assert_eq!(sql, "INSERT INTO \"public\".\"users\" (\"id\", \"name\") VALUES\n(42, 'Ada')");
+    }
+
+    #[test]
+    fn inceptor_insert_uses_select_for_ordinary_tables() {
+        let sql = generate_insert_typed(
+            &[String::from("id"), String::from("label")],
+            &[Some(String::from("int")), Some(String::from("string"))],
+            &[vec![json!(1), json!("first")], vec![json!(2), json!("second")]],
+            "events",
+            "analytics",
+            &DatabaseType::Transwarp,
+            None,
+        );
+        assert_eq!(
+            sql,
+            "INSERT INTO `analytics`.`events` (`id`, `label`)\nSELECT 1, 'first'\nUNION ALL\nSELECT 2, 'second'"
+        );
+
+        let batches = generate_insert_typed_sql_batches(
+            &[String::from("id"), String::from("label")],
+            &[Some(String::from("int")), Some(String::from("string"))],
+            &[vec![json!(1), json!("first")], vec![json!(2), json!("second")]],
+            "events",
+            "analytics",
+            &DatabaseType::Transwarp,
+            None,
+            SqlBatchLimits { max_rows: 100, target_sql_bytes: 76, hard_sql_bytes: Some(76) },
+        )
+        .unwrap();
+        assert_eq!(batches.iter().map(|(_, rows)| *rows).sum::<usize>(), 2);
+        assert!(batches.iter().all(|(sql, _)| sql.len() <= 76 && sql.contains("\nSELECT ")));
     }
 
     #[test]

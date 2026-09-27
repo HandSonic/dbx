@@ -80,6 +80,92 @@ fn mysql_table_engine_change_generates_alter_table() {
 }
 
 #[test]
+fn transwarp_table_comments_use_inceptor_syntax() {
+    let mut options =
+        structure_change_options(DatabaseType::Transwarp, Some("analytics"), "users", vec![column("name")]);
+    options.table_comment = Some("Owner's table".to_string());
+    let created = build_create_table_sql(options.clone());
+    assert!(created.warnings.is_empty(), "{:?}", created.warnings);
+    assert!(created.statements[0].ends_with("COMMENT 'Owner''s table';"));
+    options.columns.clear();
+    options.original_table_comment = Some("old".to_string());
+    let changed = build_table_structure_change_sql(options);
+    assert!(changed.warnings.is_empty(), "{:?}", changed.warnings);
+    assert_eq!(changed.statements, vec!["ALTER TABLE `users` SET TBLPROPERTIES ('comment' = 'Owner''s table');"]);
+}
+
+#[test]
+fn transwarp_uses_verified_mysql_style_column_ddl_without_constraints() {
+    let mut original = column("name");
+    original.data_type = "varchar(64)".to_string();
+    original.is_nullable = true;
+    original.original = Some(ColumnInfo {
+        name: "name".to_string(),
+        data_type: "varchar(64)".to_string(),
+        is_nullable: true,
+        ..Default::default()
+    });
+    let mut renamed = original.clone();
+    renamed.name = "display_name".to_string();
+
+    let result = build_table_structure_change_sql(structure_change_options(
+        DatabaseType::Transwarp,
+        Some("analytics"),
+        "users",
+        vec![renamed],
+    ));
+
+    assert!(result.warnings.is_empty(), "{:?}", result.warnings);
+    assert_eq!(result.statements, vec!["ALTER TABLE `users` CHANGE `name` `display_name` varchar(64);"]);
+}
+
+#[test]
+fn transwarp_adds_and_modifies_columns_with_live_verified_syntax() {
+    let added = build_table_structure_change_sql(structure_change_options(
+        DatabaseType::Transwarp,
+        Some("analytics"),
+        "users",
+        vec![column("note")],
+    ));
+    assert!(added.warnings.is_empty(), "{:?}", added.warnings);
+    assert_eq!(added.statements, vec!["ALTER TABLE `users` ADD COLUMNS (`note` varchar(255));"]);
+
+    let mut changed = column("note");
+    changed.data_type = "varchar(40)".to_string();
+    changed.original = Some(ColumnInfo {
+        name: "note".to_string(),
+        data_type: "varchar(255)".to_string(),
+        is_nullable: true,
+        ..Default::default()
+    });
+    let modified = build_table_structure_change_sql(structure_change_options(
+        DatabaseType::Transwarp,
+        Some("analytics"),
+        "users",
+        vec![changed],
+    ));
+    assert!(modified.warnings.is_empty(), "{:?}", modified.warnings);
+    assert_eq!(modified.statements, vec!["ALTER TABLE `users` CHANGE `note` `note` varchar(40);"]);
+
+    let mut dropped = column("note");
+    dropped.original = Some(ColumnInfo {
+        name: "note".to_string(),
+        data_type: "varchar(40)".to_string(),
+        is_nullable: true,
+        ..Default::default()
+    });
+    dropped.marked_for_drop = true;
+    let unsupported = build_table_structure_change_sql(structure_change_options(
+        DatabaseType::Transwarp,
+        Some("analytics"),
+        "users",
+        vec![dropped],
+    ));
+    assert!(unsupported.statements.is_empty());
+    assert!(unsupported.warnings.iter().any(|warning| warning.contains("Dropping columns is not supported")));
+}
+
+#[test]
 fn sqlite_autoincrement_normalizes_integer_aliases_to_exact_integer() {
     let mut id = column("id");
     id.data_type = "bigint".to_string();

@@ -208,7 +208,8 @@ pub(super) fn build_create_table_sql_with_partition_clause(
         if !table_comment.is_empty() {
             if matches!(dialect, StructureDialect::Mysql | StructureDialect::GaussdbM) {
                 if let Some(last) = statements.last_mut() {
-                    append_mysql_table_option(last, &format!("COMMENT = {}", quote_string(&table_comment)));
+                    let operator = if options.database_type == Some(DatabaseType::Transwarp) { "" } else { "= " };
+                    append_mysql_table_option(last, &format!("COMMENT {operator}{}", quote_string(&table_comment)));
                 }
             } else if matches!(
                 dialect,

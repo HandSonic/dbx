@@ -274,6 +274,7 @@ impl SqlDialectProfile {
                 // Oracle for statement splitting so semicolons inside the procedure body are not
                 // misinterpreted as client-side statement terminators.
                 | DatabaseType::Argo
+                | DatabaseType::Transwarp
         )
     }
 }
@@ -4031,6 +4032,7 @@ BEGIN
 END;";
 
         assert_eq!(split_sql_statements_for_database(sql, DatabaseType::Argo), vec![sql.to_string()]);
+        assert_eq!(split_sql_statements_for_database(sql, DatabaseType::Transwarp), vec![sql.to_string()]);
     }
 
     #[test]
