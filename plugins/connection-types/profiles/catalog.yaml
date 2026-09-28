@@ -480,7 +480,7 @@ profiles:
   - id: transwarp-inceptor
     dbType: transwarp
     label: 星环Inceptor
-    icon: hive
+    icon: transwarp-inceptor
     port: 10000
     user: ""
     category: domestic

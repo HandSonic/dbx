@@ -29,9 +29,9 @@ capabilities:
   objectSource: true
   schemaSearch: true
   diagram: false
-  tableDataEdit: false
+  tableDataEdit: true
   tableStructureEdit: true
-  tableImport: false
+  tableImport: true
   dataTransfer: true
   sqlFileExecution: true
   databaseCreate: true

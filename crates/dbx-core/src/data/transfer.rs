@@ -69,6 +69,7 @@ impl SqlBatchLimits {
         let max_rows = requested_max_rows.max(1).min(match db_type {
             DatabaseType::SqlServer => MAX_SQLSERVER_INSERT_ROWS,
             DatabaseType::Oracle => MAX_ORACLE_INSERT_ALL_ROWS,
+            DatabaseType::Transwarp => 100,
             _ => usize::MAX,
         });
         let target_sql_bytes = match db_type {
@@ -8718,6 +8719,35 @@ struct HiveServerTransferCursor {
     session_id: Option<String>,
 }
 
+fn is_transwarp_complex_type(data_type: &str) -> bool {
+    matches!(
+        data_type.trim().split('<').next().unwrap_or("").trim().to_ascii_lowercase().as_str(),
+        "array" | "map" | "struct" | "uniontype"
+    )
+}
+
+fn transwarp_server_side_copy_sql(
+    source_columns: &[String],
+    target_columns: &[String],
+    source_table: &str,
+    source_schema: &str,
+    target_table: &str,
+    target_schema: &str,
+    quote_target_columns: bool,
+) -> String {
+    let db_type = DatabaseType::Transwarp;
+    let source = qualified_table(source_table, source_schema, &db_type, None);
+    let target = qualified_table(target_table, target_schema, &db_type, None);
+    let source_columns =
+        source_columns.iter().map(|name| quote_identifier(name, &db_type)).collect::<Vec<_>>().join(", ");
+    let target_columns = target_columns
+        .iter()
+        .map(|name| transfer_column_identifier(name, &db_type, quote_target_columns))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("INSERT INTO {target} ({target_columns}) SELECT {source_columns} FROM {source}")
+}
+
 fn transfer_cursor_sql(
     columns: &[String],
     table: &str,
@@ -9520,6 +9550,26 @@ where
     };
     log::info!("[transfer] {} total_rows={:?}", table, total_rows);
 
+    let server_side_complex_copy = *source_db_type == DatabaseType::Transwarp
+        && writable_columns.iter().any(|column| is_transwarp_complex_type(&column.data_type));
+    if server_side_complex_copy {
+        if *target_db_type != DatabaseType::Transwarp || request.source_connection_id != request.target_connection_id {
+            return Err(format!(
+                "Native Inceptor complex columns in '{table}' require source and target on the same Transwarp connection"
+            ));
+        }
+        let source_table =
+            qualified_table(table, &request.source_schema, source_db_type, request.source_catalog.as_deref());
+        let destination_table =
+            qualified_table(&target_table, &request.target_schema, target_db_type, request.target_catalog.as_deref());
+        if source_table.eq_ignore_ascii_case(&destination_table) {
+            return Err(format!("Cannot transfer native complex columns in '{table}' onto the same table"));
+        }
+        if total_rows.is_none() {
+            return Err(format!("Cannot count native complex rows in '{table}' before transfer"));
+        }
+    }
+
     // Create table on target if requested
     if request.create_table {
         create_transfer_target_table(
@@ -9666,6 +9716,27 @@ where
         col_names.clone()
     };
 
+    if server_side_complex_copy {
+        for (source_column, target_name) in writable_columns.iter().zip(&write_col_names) {
+            let Some(target_column) =
+                target_columns.iter().find(|column| column.name.eq_ignore_ascii_case(target_name))
+            else {
+                if target_table_preexisting {
+                    return Err(format!("Target table '{target_table}' is missing column '{target_name}'"));
+                }
+                continue;
+            };
+            if is_transwarp_complex_type(&source_column.data_type)
+                && !source_column.data_type.trim().eq_ignore_ascii_case(target_column.data_type.trim())
+            {
+                return Err(format!(
+                    "Native Inceptor column '{}' needs matching source and target types ({} vs {})",
+                    source_column.name, source_column.data_type, target_column.data_type
+                ));
+            }
+        }
+    }
+
     // Truncate target if overwrite mode (only when not rebuilding the table).
     // When drop_target_before_create is true, the target table was just created
     // and is already empty, so TRUNCATE is unnecessary.
@@ -9718,6 +9789,37 @@ where
     let batch_size = if request.batch_size == 0 { 1000 } else { request.batch_size };
     let mut offset: u64 = 0;
     let mut total_transferred: u64 = 0;
+
+    if server_side_complex_copy {
+        if is_cancelled(&request.transfer_id).await {
+            return Err("Cancelled".to_string());
+        }
+        let sql = transwarp_server_side_copy_sql(
+            &col_names,
+            &write_col_names,
+            table,
+            &request.source_schema,
+            &target_table,
+            &request.target_schema,
+            request.quote_target_column_names,
+        );
+        execute_on_pool(state, target_pool_key, &sql)
+            .await
+            .map_err(|error| format!("Native Inceptor transfer failed for '{table}': {error}"))?;
+        let copied = total_rows.expect("complex transfer count validated");
+        progress_callback(TransferProgress {
+            transfer_id: request.transfer_id.clone(),
+            table: table.to_string(),
+            table_index,
+            total_tables,
+            rows_transferred: copied,
+            total_rows,
+            status: TransferStatus::Running,
+            error: None,
+            terminal: false,
+        });
+        return Ok(copied);
+    }
 
     // COPY fast path: PG-family append/overwrite transfers stream the whole
     // table through the COPY protocol instead of paged SELECT + multi-row
@@ -16793,6 +16895,7 @@ SELECT 1 FROM dual"#
 
     #[test]
     fn inceptor_insert_uses_select_for_ordinary_tables() {
+        assert_eq!(SqlBatchLimits::for_database(&DatabaseType::Transwarp, 500).max_rows, 100);
         let sql = generate_insert_typed(
             &[String::from("id"), String::from("label")],
             &[Some(String::from("int")), Some(String::from("string"))],
@@ -16820,6 +16923,24 @@ SELECT 1 FROM dual"#
         .unwrap();
         assert_eq!(batches.iter().map(|(_, rows)| *rows).sum::<usize>(), 2);
         assert!(batches.iter().all(|(sql, _)| sql.len() <= 76 && sql.contains("\nSELECT ")));
+    }
+
+    #[test]
+    fn inceptor_native_complex_copy_uses_server_side_projection() {
+        assert!(is_transwarp_complex_type("ARRAY<INT>"));
+        assert!(is_transwarp_complex_type("map<string,int>"));
+        assert!(is_transwarp_complex_type("struct<a:int>"));
+        assert!(!is_transwarp_complex_type("STRING"));
+        let sql = transwarp_server_side_copy_sql(
+            &["id".into(), "numbers".into(), "tags".into()],
+            &["id".into(), "numbers".into(), "tags".into()],
+            "events",
+            "source_db",
+            "events",
+            "target_db",
+            true,
+        );
+        assert_eq!(sql, "INSERT INTO `target_db`.`events` (`id`, `numbers`, `tags`) SELECT `id`, `numbers`, `tags` FROM `source_db`.`events`");
     }
 
     #[test]

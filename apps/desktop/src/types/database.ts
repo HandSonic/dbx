@@ -1760,6 +1760,13 @@ export interface TableStructureEditorDraft {
   originalMysqlAutoIncrementValue?: string;
   mysqlTableEngine?: string;
   originalMysqlTableEngine?: string;
+  physicalOptions?: import("@/lib/table/tablePhysicalOptions").TablePhysicalOptionsDraft;
+  /** Previous Inceptor draft shape; restored into physicalOptions on open. */
+  transwarpPartitionColumns?: string;
+  transwarpBucketColumns?: string;
+  transwarpBucketCount?: string;
+  transwarpStorageFormat?: string;
+  transwarpTransactional?: boolean;
   tableOwner?: string;
   originalTableOwner?: string;
   columns: import("@/lib/table/tableStructureEditorSql").EditableStructureColumn[];
