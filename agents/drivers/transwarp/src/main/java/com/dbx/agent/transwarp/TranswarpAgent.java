@@ -23,7 +23,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -208,7 +207,7 @@ public final class TranswarpAgent extends AbstractJdbcAgent {
                 : metadata.storesLowerCaseIdentifiers() ? table.toLowerCase(Locale.ROOT) : table;
             try (ResultSet rows = metadata.getPrimaryKeys(null, metadataSchema, metadataTable)) {
                 while (rows.next()) keys.add(rows.getString("COLUMN_NAME").toLowerCase(Locale.ROOT));
-            } catch (SQLFeatureNotSupportedException ignored) {
+            } catch (SQLException ignored) {
                 // The system catalog still provides column metadata on SDKs without PK metadata.
             }
             return keys;
@@ -227,7 +226,7 @@ public final class TranswarpAgent extends AbstractJdbcAgent {
                     int scale = rows.getInt("DECIMAL_DIGITS");
                     sizes.put(column.toLowerCase(Locale.ROOT), new int[]{size, scale});
                 }
-            } catch (SQLFeatureNotSupportedException ignored) {
+            } catch (SQLException ignored) {
                 // The system catalog remains the source for type names and other attributes.
             }
             return sizes;

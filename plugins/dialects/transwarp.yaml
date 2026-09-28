@@ -39,7 +39,7 @@ types:
     category: STRUCT
 
 ddl_capabilities:
-  add_column: false
+  add_column: true
   drop_column: false
   create_index: false
   drop_index: false
