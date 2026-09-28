@@ -101,7 +101,7 @@ import { buildRenameObjectSql, supportsObjectRename } from "@/lib/table/objectRe
 import { isTauriRuntime } from "@/lib/backend/tauriRuntime";
 import { generateDatabaseExportId } from "@/lib/export/databaseExport";
 import { buildXlsxHeaderOverrides, hasXlsxHeaderComments, type XlsxExportOptions, type XlsxHeaderMode } from "@/lib/export/xlsxHeader";
-import { showSqlInsertModeDialog, type SqlInsertMode } from "@/lib/export/sqlInsertMode";
+import { showSqlInsertModeDialog, type SqlInsertDialect, type SqlInsertMode } from "@/lib/export/sqlInsertMode";
 import { copyToClipboard, eventTargetAllowsAppClipboardShortcut } from "@/lib/common/clipboard";
 import {
   defaultPasteTableMode,
@@ -2290,16 +2290,31 @@ function tableDdlObjectType(type: ObjectBrowserRow["type"]): ObjectSourceKind | 
 }
 
 async function exportDataLegacy(row: ObjectBrowserRow, format: "json") {
+  const { connection, database, catalog } = props;
+  const { id: connectionId, db_type: databaseType, query_timeout_secs: timeoutSecs } = connection;
+  const exportDatabaseType = effectiveDatabaseType.value;
   try {
     const schema = row.schema || selectedSchema.value;
-    const queryColumns = props.connection.db_type === "neo4j" ? (await api.getColumns(props.connection.id, props.database, schema || props.database, row.name, props.catalog)).map((column) => column.name) : undefined;
+    const queryColumns = databaseType === "neo4j" ? (await api.getColumns(connectionId, database, schema || database, row.name, catalog)).map((column) => column.name) : undefined;
+    const useAgentCursor = databaseType === "cassandra";
+    const clientSessionId = useAgentCursor ? `table-export:${generateDatabaseExportId()}` : undefined;
     const result = await fetchTableDataForExport({
-      databaseType: effectiveDatabaseType.value,
-      identifierQuote: connectionStore.connectionIdentifierQuote?.(props.connection.id),
+      databaseType: exportDatabaseType,
+      identifierQuote: connectionStore.connectionIdentifierQuote?.(connectionId),
       schema,
       tableName: row.name,
       columns: queryColumns,
-      executePage: (sql) => api.executeQuery(props.connection.id, props.database, sql),
+      useAgentCursor,
+      executePage: (sql, cursorOptions) => (cursorOptions ? api.executeQuery(connectionId, database, sql, undefined, undefined, { ...cursorOptions, clientSessionId, catalog, timeoutSecs }) : api.executeQuery(connectionId, database, sql)),
+      closeCursor: useAgentCursor
+        ? async (sessionId) => {
+            try {
+              if (sessionId) await api.closeQuerySession(connectionId, database, sessionId, clientSessionId, catalog);
+            } finally {
+              await api.closeClientConnectionSession(connectionId, database, clientSessionId!, catalog);
+            }
+          }
+        : undefined,
     });
 
     if (format === "json") {
@@ -2321,14 +2336,14 @@ async function exportDataLegacy(row: ObjectBrowserRow, format: "json") {
   }
 }
 
-async function exportData(row: ObjectBrowserRow, format: "csv" | "json" | "sql") {
+async function exportData(row: ObjectBrowserRow, format: "csv" | "json" | "sql", insertDialect: SqlInsertDialect = "source") {
   if (format === "json") {
     await exportDataLegacy(row, format);
     return;
   }
   const sqlExportOptions = format === "sql" ? await showSqlInsertModeDialog({ allowSplit: true }) : undefined;
   if (format === "sql" && sqlExportOptions === null) return;
-  await exportTableData(row, format, undefined, "name", true, sqlExportOptions?.insertMode ?? "batch", sqlExportOptions?.splitMaxMb);
+  await exportTableData(row, format, undefined, "name", true, sqlExportOptions?.insertMode ?? "batch", sqlExportOptions?.splitMaxMb, insertDialect);
 }
 
 function showObjectBrowserXlsxHeaderDialog(hasComments: boolean): Promise<XlsxExportOptions | null> {
@@ -2371,7 +2386,7 @@ async function exportDataXlsx(row: ObjectBrowserRow) {
   await exportTableData(row, "xlsx", columnInfos, exportOptions.headerMode, exportOptions.autoFilter);
 }
 
-async function exportTableData(row: ObjectBrowserRow, format: "csv" | "xlsx" | "sql", columnInfos?: ColumnInfo[], headerMode: XlsxHeaderMode = "name", autoFilter = true, insertMode: SqlInsertMode = "batch", splitMaxMb?: number) {
+async function exportTableData(row: ObjectBrowserRow, format: "csv" | "xlsx" | "sql", columnInfos?: ColumnInfo[], headerMode: XlsxHeaderMode = "name", autoFilter = true, insertMode: SqlInsertMode = "batch", splitMaxMb?: number, insertDialect: SqlInsertDialect = "source") {
   const schema = row.schema || selectedSchema.value;
   const splitSqlOutput = format === "sql" && splitMaxMb !== undefined;
 
@@ -2446,7 +2461,7 @@ async function exportTableData(row: ObjectBrowserRow, format: "csv" | "xlsx" | "
       tableName: row.name,
       filePath,
       format,
-      ...(format === "sql" ? { insertMode, splitMaxMb } : {}),
+      ...(format === "sql" ? { insertMode, insertDialect, splitMaxMb } : {}),
       csvQuoteMode: settingsStore.editorSettings.csvQuoteMode,
       columns,
       columnComments: format === "xlsx" ? columnComments : undefined,
@@ -3373,7 +3388,10 @@ function exportDataSubmenu(item: ObjectBrowserRow): ContextMenuItem {
     { label: "CSV", action: () => exportData(item, "csv") },
     { label: "JSON", action: () => exportData(item, "json") },
   ];
-  if (!isVictoriaMetrics.value) formats.push({ label: "SQL INSERT", action: () => exportData(item, "sql") });
+  if (!isVictoriaMetrics.value) {
+    formats.push({ label: "SQL INSERT", action: () => exportData(item, "sql", "source") });
+    formats.push({ label: t("contextMenu.standardSqlInsert"), action: () => exportData(item, "sql", "standard") });
+  }
   formats.push({ label: "XLSX", action: () => exportDataXlsx(item) });
   return {
     label: t("contextMenu.exportData"),

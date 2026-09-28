@@ -9,7 +9,10 @@ paths or the generic JDBC plugin.
 The SDK was supplied with Waterdrop 2.0. Its SHA-256 is
 `462b9c2d298ccea12e0fc903b764b63a915204fa0c7e34de6dc71884130ff184`.
 Its filename does not identify the server version. Redistribution terms must be
-confirmed before publishing this vendor binary.
+confirmed before publishing this vendor binary. The [official JDBC guide](https://www.transwarp.cn/doc/inceptor/9.5/developer-guide--application-development--development-jdbc)
+directs users to download the driver from Transwarp Manager; licenses bundled for the
+SDK's third-party dependencies do not establish redistribution permission for
+the Transwarp SDK itself.
 
 New connections use the single `transwarp-inceptor` product profile. Existing
 `argo` connections continue to use the Go Agent and are left unchanged. The default
@@ -30,13 +33,15 @@ the SDK does not provide usable index introspection.
 
 Database creation and the column-level structure editor are enabled. The
 structure editor uses the live-verified `ADD COLUMNS (...)` and `CHANGE` forms.
-`DROP COLUMN`, indexes, foreign keys, primary-key changes, user
-administration, and table import remain disabled until verified on both product
-families and their supported server versions.
+`DROP COLUMN`, indexes, foreign keys, primary-key changes, and user
+administration remain disabled until verified on both product families and
+their supported server versions.
 Database actions use `CREATE DATABASE IF NOT EXISTS` and `DROP DATABASE IF EXISTS`.
 Ordinary non-transactional tables accept `INSERT ... SELECT`, but not row-wise
 `INSERT ... VALUES`. UPDATE/DELETE and rollback require a transactional table.
-The data grid editor is disabled until editability can be detected per table.
+Table import and transfer use `INSERT ... SELECT`; the data grid permits inserts
+and enables updates/deletes only when the table is transactional. Native complex
+columns require same-connection server-side copying for data transfer.
 DBX does not silently change the storage format or transactional properties of
 tables being created.
 

@@ -80,6 +80,42 @@ fn quotes_spanner_identifiers_by_connection_dialect() {
 }
 
 #[test]
+fn kyuubi_table_data_uses_connection_identifier_quote() {
+    let columns = vec!["id".to_string(), "order\"value".to_string()];
+    let base = TableDataSelectSqlOptions {
+        database_type: Some(DatabaseType::Kyuubi),
+        schema: Some("sales\"daily".to_string()),
+        table_name: "event\"log".to_string(),
+        columns,
+        limit: Some(25),
+        ..Default::default()
+    };
+
+    assert_eq!(
+        build_table_data_select_sql(TableDataSelectSqlOptions {
+            identifier_quote: Some("\"".to_string()),
+            ..base.clone()
+        }),
+        "SELECT \"id\", \"order\"\"value\" FROM \"sales\"\"daily\".\"event\"\"log\" LIMIT 25;"
+    );
+    assert_eq!(
+        build_table_data_select_sql(TableDataSelectSqlOptions {
+            identifier_quote: Some("`".to_string()),
+            ..base.clone()
+        }),
+        "SELECT `id`, `order\"value` FROM `sales\"daily`.`event\"log` LIMIT 25;"
+    );
+    assert_eq!(
+        build_table_data_select_sql(TableDataSelectSqlOptions {
+            database_type: Some(DatabaseType::Hive),
+            identifier_quote: Some("\"".to_string()),
+            ..base
+        }),
+        "SELECT `id` AS `id`, `order\"value` AS `order\"value` FROM `sales\"daily`.`event\"log` LIMIT 25;"
+    );
+}
+
+#[test]
 fn quotes_gaussdb_jdbc_identifiers_selectively() {
     for (name, expected) in [
         ("schema_01", "schema_01"),
@@ -163,6 +199,15 @@ fn maps_table_pagination_strategy_by_database_type() {
     assert_eq!(table_pagination_strategy(Some(DatabaseType::Questdb)), TablePaginationStrategy::QuestDbLimit);
     assert_eq!(table_pagination_strategy(Some(DatabaseType::Oracle)), TablePaginationStrategy::Rownum);
     assert_eq!(table_pagination_strategy(Some(DatabaseType::Oscar)), TablePaginationStrategy::Rownum);
+    assert_eq!(table_pagination_strategy(Some(DatabaseType::Cassandra)), TablePaginationStrategy::AgentMaxRows);
+    assert_eq!(
+        pagination_strategy(Some(DatabaseType::Cassandra), PaginationContext::BoundedRead),
+        TablePaginationStrategy::LimitOffset
+    );
+    assert_eq!(
+        pagination_strategy(Some(DatabaseType::Cassandra), PaginationContext::UserQuery),
+        TablePaginationStrategy::AgentMaxRows
+    );
     assert_eq!(
         pagination_strategy(Some(DatabaseType::Oracle), PaginationContext::BoundedRead),
         TablePaginationStrategy::Rownum
@@ -183,6 +228,22 @@ fn maps_table_pagination_strategy_by_database_type() {
     // Both Spanner dialects support `LIMIT n OFFSET m`; pin the fallback.
     assert_eq!(table_pagination_strategy(Some(DatabaseType::Spanner)), TablePaginationStrategy::LimitOffset);
     assert_eq!(table_pagination_strategy(None), TablePaginationStrategy::LimitOffset);
+}
+
+#[test]
+fn cassandra_table_data_pagination_uses_the_agent_cursor() {
+    for offset in [0, 100, 200] {
+        assert_eq!(
+            build_table_data_select_sql(TableDataSelectSqlOptions {
+                database_type: Some(DatabaseType::Cassandra),
+                table_name: "paged_rows".to_string(),
+                limit: Some(100),
+                offset: Some(offset),
+                ..Default::default()
+            }),
+            "SELECT * FROM \"paged_rows\";"
+        );
+    }
 }
 
 #[test]
