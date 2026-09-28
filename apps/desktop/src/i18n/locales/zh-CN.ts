@@ -5252,7 +5252,6 @@ export default withEnglishFallback({
     transwarpBucketCount: "桶数",
     transwarpStorageFormat: "存储格式",
     transwarpTransactional: "事务表",
-    transwarpColumnsPlaceholder: "列1, 列2",
     owner: "所有者",
     ownerPlaceholder: "输入角色名...",
     ownerSearchPlaceholder: "搜索或输入角色名...",

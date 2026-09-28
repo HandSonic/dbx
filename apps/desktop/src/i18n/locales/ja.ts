@@ -4760,7 +4760,6 @@ export default withEnglishFallback({
     transwarpBucketCount: "バケット数",
     transwarpStorageFormat: "保存形式",
     transwarpTransactional: "トランザクションテーブル",
-    transwarpColumnsPlaceholder: "列1, 列2",
     triggerName: "トリガー",
     triggerStatement: "トリガー文",
     primary: "主キー",

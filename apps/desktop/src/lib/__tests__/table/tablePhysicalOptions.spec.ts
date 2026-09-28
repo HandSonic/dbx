@@ -8,18 +8,13 @@ const columns = [
 ];
 
 describe("table physical options", () => {
-  it("restores an older Inceptor draft into stable column identities", () => {
-    const restored = restoreTablePhysicalOptions(
-      {
-        transwarpPartitionColumns: "day",
-        transwarpBucketColumns: "id",
-        transwarpBucketCount: "2",
-        transwarpStorageFormat: "ORC",
-        transwarpTransactional: true,
-      },
-      columns,
-    );
+  it("restores a saved draft without sharing its column selections", () => {
+    const saved = { physicalOptions: { partitionColumnIds: ["second"], distributionColumnIds: ["first"], bucketCount: "2", storageFormat: "ORC", transactional: true } };
+    const restored = restoreTablePhysicalOptions(saved);
     expect(restored).toMatchObject({ partitionColumnIds: ["second"], distributionColumnIds: ["first"], bucketCount: "2", storageFormat: "ORC", transactional: true });
+    expect(restored.partitionColumnIds).not.toBe(saved.physicalOptions.partitionColumnIds);
+    expect(restored.distributionColumnIds).not.toBe(saved.physicalOptions.distributionColumnIds);
+    expect(restoreTablePhysicalOptions({})).toEqual(emptyTablePhysicalOptions());
     expect(hasTablePhysicalOptions(restored)).toBe(true);
     expect(hasTablePhysicalOptions(emptyTablePhysicalOptions())).toBe(false);
   });

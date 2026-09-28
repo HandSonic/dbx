@@ -4697,7 +4697,6 @@ export default withEnglishFallback({
     transwarpBucketCount: "Numero di bucket",
     transwarpStorageFormat: "Formato di archiviazione",
     transwarpTransactional: "Tabella transazionale",
-    transwarpColumnsPlaceholder: "colonna1, colonna2",
     triggerName: "Trigger",
     triggerStatement: "Istruzione trigger",
     primary: "Primario",

@@ -5278,7 +5278,6 @@ export default {
     transwarpBucketCount: "Buckets",
     transwarpStorageFormat: "Storage format",
     transwarpTransactional: "Transactional table",
-    transwarpColumnsPlaceholder: "column1, column2",
     owner: "Owner",
     ownerPlaceholder: "Enter role name...",
     ownerSearchPlaceholder: "Search or enter a role name...",

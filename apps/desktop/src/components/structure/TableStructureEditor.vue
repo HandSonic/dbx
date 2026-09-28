@@ -1988,7 +1988,7 @@ function restoreDraft(draft: TableStructureEditorDraft) {
   tableOwner.value = draft.tableOwner || "";
   originalTableOwner.value = draft.originalTableOwner || "";
   columns.value = cloneDraftValue(draft.columns || []);
-  physicalOptions.value = restoreTablePhysicalOptions(draft, columns.value);
+  physicalOptions.value = restoreTablePhysicalOptions(draft);
   // Existing-index edits never support Concurrent (the checkbox is disabled and
   // the core builder rejects the request), so a stale `concurrently: true`
   // saved in a restored draft must not be submitted or deadlock the save.

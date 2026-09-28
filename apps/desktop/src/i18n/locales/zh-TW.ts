@@ -4433,7 +4433,6 @@ export default withEnglishFallback({
     transwarpBucketCount: "桶數",
     transwarpStorageFormat: "儲存格式",
     transwarpTransactional: "交易資料表",
-    transwarpColumnsPlaceholder: "欄位1, 欄位2",
     triggerName: "觸發器名稱",
     triggerStatement: "觸發語句",
     primary: "主鍵",

@@ -4695,7 +4695,6 @@ export default withEnglishFallback({
     transwarpBucketCount: "버킷 수",
     transwarpStorageFormat: "저장 형식",
     transwarpTransactional: "트랜잭션 테이블",
-    transwarpColumnsPlaceholder: "열1, 열2",
     triggerName: "트리거",
     triggerStatement: "트리거 구문",
     primary: "기본",

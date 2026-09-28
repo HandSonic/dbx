@@ -5224,7 +5224,6 @@ export default withEnglishFallback({
     transwarpBucketCount: "Число корзин",
     transwarpStorageFormat: "Формат хранения",
     transwarpTransactional: "Транзакционная таблица",
-    transwarpColumnsPlaceholder: "столбец1, столбец2",
     triggerName: "Триггер",
     triggerStatement: "Оператор триггера",
     primary: "Первичный",

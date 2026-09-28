@@ -43,36 +43,14 @@ export function pruneTablePhysicalOptions(draft: TablePhysicalOptionsDraft, avai
   return { ...draft, partitionColumnIds, distributionColumnIds };
 }
 
-interface LegacyInceptorDraft {
-  physicalOptions?: TablePhysicalOptionsDraft;
-  transwarpPartitionColumns?: string;
-  transwarpBucketColumns?: string;
-  transwarpBucketCount?: string;
-  transwarpStorageFormat?: string;
-  transwarpTransactional?: boolean;
-}
-
-export function restoreTablePhysicalOptions(saved: LegacyInceptorDraft, columns: readonly Pick<EditableStructureColumn, "id" | "name">[]): TablePhysicalOptionsDraft {
-  if (saved.physicalOptions) {
-    return {
-      partitionColumnIds: [...(saved.physicalOptions.partitionColumnIds ?? [])],
-      distributionColumnIds: [...(saved.physicalOptions.distributionColumnIds ?? [])],
-      bucketCount: saved.physicalOptions.bucketCount ?? "",
-      storageFormat: saved.physicalOptions.storageFormat ?? "",
-      transactional: saved.physicalOptions.transactional ?? false,
-    };
-  }
-  const legacyIds = (names: string | undefined) =>
-    (names ?? "")
-      .split(",")
-      .map((name) => columns.find((column) => column.name.toLowerCase() === name.trim().toLowerCase())?.id)
-      .filter((id): id is string => !!id);
+export function restoreTablePhysicalOptions(saved: { physicalOptions?: TablePhysicalOptionsDraft }): TablePhysicalOptionsDraft {
+  if (!saved.physicalOptions) return emptyTablePhysicalOptions();
   return {
-    partitionColumnIds: legacyIds(saved.transwarpPartitionColumns),
-    distributionColumnIds: legacyIds(saved.transwarpBucketColumns),
-    bucketCount: saved.transwarpBucketCount ?? "",
-    storageFormat: saved.transwarpStorageFormat === "__default" ? "" : (saved.transwarpStorageFormat ?? ""),
-    transactional: saved.transwarpTransactional ?? false,
+    partitionColumnIds: [...saved.physicalOptions.partitionColumnIds],
+    distributionColumnIds: [...saved.physicalOptions.distributionColumnIds],
+    bucketCount: saved.physicalOptions.bucketCount,
+    storageFormat: saved.physicalOptions.storageFormat,
+    transactional: saved.physicalOptions.transactional,
   };
 }
 
