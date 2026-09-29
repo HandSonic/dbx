@@ -3649,11 +3649,12 @@ const tlsCapableDatabaseTypes = new Set<DatabaseType>([
   "influxdb",
   "victoriametrics",
   "cassandra",
+  "nebula",
   "zookeeper",
 ]);
 const supportsTlsToggle = computed(() => tlsCapableDatabaseTypes.has(form.value.db_type) || supportsMysqlTlsTab(form.value.db_type, selectedType.value));
 const supportsCaCertificatePath = computed(() => form.value.db_type === "clickhouse" || form.value.db_type === "victoriametrics");
-const supportsGenericUrlParams = computed(() => form.value.db_type !== "manticoresearch" && form.value.db_type !== "hbase");
+const supportsGenericUrlParams = computed(() => form.value.db_type !== "manticoresearch" && form.value.db_type !== "hbase" && form.value.db_type !== "nebula");
 const showGenericUrlParamsHint = computed(() => form.value.db_type === "mysql" || form.value.db_type === "doris" || form.value.db_type === "starrocks");
 const bareMysqlProfiles = new Set(["doris", "selectdb", "oceanbase"]);
 const supportsMysqlTlsOptions = computed(() => mysqlTlsOptionsSupported(form.value.db_type, selectedType.value));
@@ -9308,7 +9309,7 @@ function openExternalUrl(url: string) {
                   </label>
                 </div>
 
-                <template v-if="form.db_type === 'etcd' || form.db_type === 'consul' || form.db_type === 'zookeeper' || form.db_type === 'elasticsearch' || form.db_type === 'easysearch'">
+                <template v-if="form.db_type === 'etcd' || form.db_type === 'consul' || form.db_type === 'zookeeper' || form.db_type === 'elasticsearch' || form.db_type === 'easysearch' || form.db_type === 'nebula'">
                   <div class="grid grid-cols-4 items-start gap-4">
                     <Label :class="connectionLabelSmallPaddedClass">
                       <span class="inline-flex items-center justify-end gap-1">
@@ -9361,7 +9362,7 @@ function openExternalUrl(url: string) {
                           <TooltipContent>{{ t("connection.etcdClientKeyBrowse") }}</TooltipContent>
                         </Tooltip>
                       </div>
-                      <p class="text-[11px] leading-4 text-muted-foreground">
+                      <p v-if="form.db_type !== 'nebula'" class="text-[11px] leading-4 text-muted-foreground">
                         {{ t("connection.etcdClientCertHint") }}
                       </p>
                     </div>
