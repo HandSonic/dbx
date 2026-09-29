@@ -267,6 +267,7 @@ class DriverReleasePackagesTest(unittest.TestCase):
                     versioned_etcd2,
                     versioned_java,
                     versioned_native,
+                    versioned_nebula,
                     versioned_rabbitmq,
                     versioned_rocketmq,
                     versioned_tdengine,
