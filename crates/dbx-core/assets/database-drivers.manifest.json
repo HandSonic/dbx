@@ -2129,6 +2129,14 @@
       "runtimeMode": "agent",
       "mcpMode": "bridge",
       "agentKey": "nebula",
+      "driverProfiles": [
+        {
+          "profile": "nebula-v3",
+          "agentKey": "nebula",
+          "label": "NebulaGraph 3.x",
+          "storeVisible": false
+        }
+      ],
       "driverStoreVisible": true,
       "driverStoreOrder": 53,
       "singleConnectionPool": false,

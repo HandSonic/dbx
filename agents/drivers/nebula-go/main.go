@@ -33,6 +33,7 @@ type response struct {
 }
 
 type connectParams struct {
+	DriverProfile      string `json:"driver_profile"`
 	Host               string `json:"host"`
 	Port               int    `json:"port"`
 	Database           string `json:"database"`
@@ -216,6 +217,9 @@ func (r *runtimeServer) openSession(id string, options connectParams) error {
 }
 
 func newAgentSession(options connectParams) (*agentSession, error) {
+	if options.DriverProfile != "" && !strings.EqualFold(options.DriverProfile, "nebula") && !strings.EqualFold(options.DriverProfile, "nebula-v3") {
+		return nil, fmt.Errorf("unsupported NebulaGraph driver profile %q; only NebulaGraph 3.x is supported", options.DriverProfile)
+	}
 	if strings.TrimSpace(options.Host) == "" {
 		return nil, errors.New("NebulaGraph graphd host is required")
 	}

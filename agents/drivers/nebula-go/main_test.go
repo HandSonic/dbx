@@ -44,6 +44,19 @@ func TestHandshakeMatchesAgentProtocol(t *testing.T) {
 	}
 }
 
+func TestDriverProfileSupportsV3AndLegacyConnections(t *testing.T) {
+	for _, profile := range []string{"", "nebula", "nebula-v3"} {
+		_, err := newAgentSession(connectParams{DriverProfile: profile})
+		if err == nil || !strings.Contains(err.Error(), "graphd host is required") {
+			t.Fatalf("profile %q unexpectedly rejected: %v", profile, err)
+		}
+	}
+	_, err := newAgentSession(connectParams{DriverProfile: "nebula-v5"})
+	if err == nil || !strings.Contains(err.Error(), "only NebulaGraph 3.x is supported") {
+		t.Fatalf("unsupported profile was not rejected: %v", err)
+	}
+}
+
 func TestMissingSessionReturnsValidErrorContract(t *testing.T) {
 	runtime := &runtimeServer{sessions: make(map[string]*agentSession)}
 	response := runtime.handleLine(`{"jsonrpc":"2.0","id":7,"method":"execute_query","params":{"agentSessionId":"missing","sql":"SHOW SPACES"}}`)

@@ -150,7 +150,7 @@ import { buildDraftVisibleDatabasesConnectionId, connectionCanChooseVisibleDatab
 import { canSaveVisibleDatabaseSelection, connectionUsesVisibleSchemaFilter, filterDatabaseNamesForVisiblePicker, filterSchemaNamesForVisiblePicker, normalizeVisibleDatabaseSelection, buildDraftVisibleSchemasConnectionId, normalizeVisibleSchemaSelection } from "@/lib/database/visibleDatabases";
 import { isSchemaAware, isSingleDatabase, supportsDataDictionary } from "@/lib/database/databaseFeatureSupport";
 import { normalizeConnectionScope, normalizeConnectionTimeouts } from "@/lib/connection/connectionSubmitNormalization";
-import { databaseConnectionFormKind } from "@/lib/database/databaseDriverManifest";
+import { databaseConnectionFormKind, databaseManifestEntry } from "@/lib/database/databaseDriverManifest";
 import VisibleSchemasDialog from "@/components/sidebar/VisibleSchemasDialog.vue";
 import CloudflareD1ConnectionFields from "@/components/connection/CloudflareD1ConnectionFields.vue";
 import SpannerConnectionFields from "@/components/connection/SpannerConnectionFields.vue";
@@ -1183,6 +1183,8 @@ const driverProfiles: Record<string, ConnectionProfileDefinition> = {
   ...CONNECTION_PROFILES,
   ...jdbcProductDriverProfiles(),
 };
+const nebulaDriverProfiles = databaseManifestEntry("nebula")?.driverProfiles ?? [];
+const nebulaDefaultDriverProfile = nebulaDriverProfiles[0]?.profile ?? "nebula";
 
 function profileForConfig(config: ConnectionConfig) {
   if (config.db_type === "plugin" && config.plugin_id && config.plugin_connection_provider) {
@@ -2803,7 +2805,7 @@ function applyProfile(val: string, preserveConnectionFields = false) {
   const previousDatabaseType = form.value.db_type;
   selectedType.value = val;
   form.value.db_type = profile.type;
-  form.value.driver_profile = val;
+  form.value.driver_profile = val === "nebula" ? nebulaDefaultDriverProfile : val;
   form.value.driver_label = isCustomCompatibleProfile() ? customDriverName.value.trim() || profile.label : profile.label;
   const preserveMeilisearchConfig = preserveConnectionFields && previousDatabaseType === "meilisearch" && profile.type === "meilisearch";
   if (profile.type !== "sqlserver" && !preserveMeilisearchConfig) {
@@ -3429,6 +3431,12 @@ function switchH2ConnectionMode(mode: H2ConnectionMode) {
 }
 
 function switchEtcdApiVersion(profile: "etcd" | "etcd-v2") {
+  form.value.driver_profile = profile;
+  resetTestState();
+}
+
+function switchNebulaDriverProfile(profile: unknown) {
+  if (typeof profile !== "string" || !nebulaDriverProfiles.some((entry) => entry.profile === profile)) return;
   form.value.driver_profile = profile;
   resetTestState();
 }
@@ -4627,6 +4635,9 @@ function connectionConfigForSubmit(id: string, generatedName = "", validatePlugi
     config.production_databases = [];
   } else {
     config = { ...formValueForSubmit(), id } as LegacyConnectionConfig;
+  }
+  if (config.db_type === "nebula" && (!config.driver_profile || config.driver_profile === "nebula")) {
+    config.driver_profile = nebulaDefaultDriverProfile;
   }
   config.database_info = undefined;
   config.database = normalizeStoredConnectionDatabase(config.db_type, config.database);
@@ -7016,6 +7027,20 @@ function openExternalUrl(url: string) {
                     <span class="min-w-0 flex-1 truncate text-sm text-left">{{ selectedProfile().label }}</span>
                     <Pencil class="h-3 w-3 text-muted-foreground" />
                   </button>
+                </div>
+
+                <div v-if="form.db_type === 'nebula'" class="grid grid-cols-4 items-center gap-4">
+                  <Label :class="connectionLabelClass">{{ t("connection.version") }}</Label>
+                  <div class="col-span-3">
+                    <Select :model-value="form.driver_profile === 'nebula' ? nebulaDefaultDriverProfile : form.driver_profile" @update:model-value="switchNebulaDriverProfile">
+                      <SelectTrigger class="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem v-for="profile in nebulaDriverProfiles" :key="profile.profile" :value="profile.profile">{{ profile.label }}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <!-- OceanBase mode toggle -->
