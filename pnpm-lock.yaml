@@ -144,6 +144,12 @@ importers:
       codemirror:
         specifier: ^6.0.2
         version: 6.0.2
+      cytoscape:
+        specifier: ^3.34.3
+        version: 3.34.3
+      cytoscape-fcose:
+        specifier: ^2.2.0
+        version: 2.2.0(cytoscape@3.34.3)
       dayjs:
         specifier: ^1.11.21
         version: 1.11.21
@@ -623,6 +629,114 @@ packages:
 
   '@codemirror/view@6.43.0':
     resolution: {integrity: sha512-V7ZCLQO3Jus9hzh2jVCCPW3mO4IBMr43O37PqSUYautJSnnJF41YlgLw21x0fLJTYvJ+Vkm6Gp+qKGH9pltgXA==}
+
+  '@dbx-app/cli-darwin-arm64@0.4.101':
+    resolution: {integrity: sha512-Zkqn2Jl5WP4tGmkNyB/uRaDb1L3PGjyhCXiIKZDsErtkhdIV6eceBq4Q8SXr1sOeZ+o7DL7j8Hrr9Js/OG5GXw==}
+    cpu: [arm64]
+    os: [darwin]
+    hasBin: true
+
+  '@dbx-app/cli-darwin-x64@0.4.101':
+    resolution: {integrity: sha512-2Nm7AudinghigFYcrPUizJdAAJHK/60obX/PHjn+Ynr56OhDAXWcxzgoBtpnlxWV6H11Gs2w8oOGRctU3+ulYQ==}
+    cpu: [x64]
+    os: [darwin]
+    hasBin: true
+
+  '@dbx-app/cli-linux-arm64-gnu@0.4.101':
+    resolution: {integrity: sha512-wHwrKYzd6jg5PeTtKQkiQwqSGU6QyR3cHNwuvgEBfuRchNamFd6HxzCwPDTKXw2ClY9R2X7u8GTxdzP1KihNUg==}
+    cpu: [arm64]
+    os: [linux]
+    hasBin: true
+
+  '@dbx-app/cli-linux-x64-gnu@0.4.101':
+    resolution: {integrity: sha512-vptCV6aq72hW83z1QlDJyZWy7azZjJW7dm6CovaUh9m/WCh6FQXQ9gUm3/mHHEgf0hF6FvuLYDf/KEPSHl38gg==}
+    cpu: [x64]
+    os: [linux]
+    hasBin: true
+
+  '@dbx-app/cli-win32-arm64@0.4.101':
+    resolution: {integrity: sha512-WK/mxseteB4nZMkiSmY4SZD6/bwOcRynOPcfVDQSAiHbzh7l9A74Ib3YSGwYE5Ucry3Yt7Cmku/gRPIxgW1vBA==}
+    cpu: [arm64]
+    os: [win32]
+    hasBin: true
+
+  '@dbx-app/cli-win32-x64@0.4.101':
+    resolution: {integrity: sha512-xr4by3gxnimwAuRtQNK08JPWfOAY/hB0JpykdTTbBj7srMyIC+DyuoerK+2RqcDU/ZKAXYMtRMcac7pDG+OS4g==}
+    cpu: [x64]
+    os: [win32]
+    hasBin: true
+
+  '@dbx-app/mcp-darwin-arm64@0.4.101':
+    resolution: {integrity: sha512-Lh+3tlYwJX5QtM13loQ7yIClWoHJQj9z7U1Q6B4qfBbsHXEKvU4fpwxTIiRHM0p6Pt0UaE31FLXAhvSBfx7n7w==}
+    cpu: [arm64]
+    os: [darwin]
+    hasBin: true
+
+  '@dbx-app/mcp-darwin-x64@0.4.101':
+    resolution: {integrity: sha512-4W/CbHBobN6PzSSHrXnce9/eoUulvfMjzlOvwQEVI108hS5NRuYiO4mCl2LH5wWdEV8MpyocVei0Iyj2lsSrLQ==}
+    cpu: [x64]
+    os: [darwin]
+    hasBin: true
+
+  '@dbx-app/mcp-linux-arm64-gnu@0.4.101':
+    resolution: {integrity: sha512-06IWgLDZ67WmkrLcYqG+x58xRlAxsSrRjdYXLPMOMBEvrC9rOx1UF6pwMUmhGVt5Hpsoept36eWwoxWSQzWGMA==}
+    cpu: [arm64]
+    os: [linux]
+    hasBin: true
+
+  '@dbx-app/mcp-linux-x64-gnu@0.4.101':
+    resolution: {integrity: sha512-ByvrseohDjWon/17XhbfC6awuX4fGlGsz5sCsnSlbQIEdDOE5F8ZNCGTlynewt8cyzV0NhQZ6wQqA7Q0kQTpeQ==}
+    cpu: [x64]
+    os: [linux]
+    hasBin: true
+
+  '@dbx-app/mcp-win32-arm64@0.4.101':
+    resolution: {integrity: sha512-1Flh8UdGKa5CxYN4ZpAD1lHtWy1Sd9BrmM7B7YTFH0euY/dR9SYSwXEOOpxlrqjVAAukuIKBSVBF/w/Zhs9ZGA==}
+    cpu: [arm64]
+    os: [win32]
+    hasBin: true
+
+  '@dbx-app/mcp-win32-x64@0.4.101':
+    resolution: {integrity: sha512-TuEb1cBiv8Mn1UhKVNu315QEexZEubz73tCNpm2GJwUwgWnrG8lURQX4Q/4KMCKcRnx03wDzECqMVTaztItufg==}
+    cpu: [x64]
+    os: [win32]
+    hasBin: true
+
+  '@dbx-app/plugin-cli-darwin-arm64@0.1.9':
+    resolution: {integrity: sha512-ogk6MgTZlgp/mOovwBa9X/3fMc8YPIweaHbRID7h5mO+6v7Sw2anzzNanz9/YPc/I4NkTiBqdlG0WDu4X37X2w==}
+    cpu: [arm64]
+    os: [darwin]
+    hasBin: true
+
+  '@dbx-app/plugin-cli-darwin-x64@0.1.9':
+    resolution: {integrity: sha512-CewebmGxEVXs4sGTIx+OoYCRCJGlEkikXqaGjS16JXu0Ei9rUUWAKRHaEmUFs3Yz4DbQbjDiLMDBMgSxdajs7Q==}
+    cpu: [x64]
+    os: [darwin]
+    hasBin: true
+
+  '@dbx-app/plugin-cli-linux-arm64-gnu@0.1.9':
+    resolution: {integrity: sha512-ZDTb6ynkPxu7m0tT8hzsKcpqudCcQ13h4hYcronN+ekeVwf1dlFE59lGHov+6nI2QnmZmVvm/sp1AtWFHYJDEw==}
+    cpu: [arm64]
+    os: [linux]
+    hasBin: true
+
+  '@dbx-app/plugin-cli-linux-x64-gnu@0.1.9':
+    resolution: {integrity: sha512-I0hyyewJ7AZ4ZikcM7Vx3TCEFF5VhdKCKHBIrydCEemQHKGrhWOvv/v/HBOEm/SF5SVxmkjrIBLUQymMPIECtA==}
+    cpu: [x64]
+    os: [linux]
+    hasBin: true
+
+  '@dbx-app/plugin-cli-win32-arm64@0.1.9':
+    resolution: {integrity: sha512-5V7JiU4fAL/5yZO1Q9a4E63Irz+YfcidMJNEl3+BwQ/SySU/jXg0dFjFZmX01XKe+LF0/MzIOKc2NnFPIo7cCQ==}
+    cpu: [arm64]
+    os: [win32]
+    hasBin: true
+
+  '@dbx-app/plugin-cli-win32-x64@0.1.9':
+    resolution: {integrity: sha512-ZZ9Jo9f81z8TGZF8monkdBJdVgTxPO0fU5J2CsgoADmiWPvjzqorqmjftlTA8bLE5Y+MmVCbJHRwmO1FR8yW6A==}
+    cpu: [x64]
+    os: [win32]
+    hasBin: true
 
   '@dotenvx/dotenvx@1.75.1':
     resolution: {integrity: sha512-/BITOC9dmS/edY2zQwZNicQ059O6RKabtQfyEafV0nGtfYRNHYy1DIPiYVcov40+tob9hfmBnbR963dS+EQ1DQ==}
@@ -2079,6 +2193,9 @@ packages:
     resolution: {integrity: sha512-tJtZBBHA6vjIAaF6EnIaq6laBBP9aq/Y3ouVJjEfoHbRBcHBAHYcMh/w8LDrk2PvIMMq8gmopa5D4V8RmbrxGw==}
     engines: {node: '>= 0.10'}
 
+  cose-base@2.2.0:
+    resolution: {integrity: sha512-AzlgcsCbUMymkADOJtQm3wO9S3ltPfYOFD5033keQn9NJzIbtnZj+UdBJe7DYml/8TdbtHJW3j58SOnKhWY/5g==}
+
   crelt@1.0.6:
     resolution: {integrity: sha512-VQ2MBenTq1fWZUH9DJNGti7kKv6EeAuYr3cLwxUWhIu1baTaXh4Ib5W2CqHVqib4/MqbYGJqiL3Zb8GJZr3l4g==}
 
@@ -2103,6 +2220,15 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  cytoscape-fcose@2.2.0:
+    resolution: {integrity: sha512-ki1/VuRIHFCzxWNrsshHYPs6L7TvLu3DL+TyIGEsRcvVERmxokbf5Gdk7mFxZnTdiGtnA4cfSmjZJMviqSuZrQ==}
+    peerDependencies:
+      cytoscape: ^3.2.0
+
+  cytoscape@3.34.3:
+    resolution: {integrity: sha512-yfYGhRcGAntq6YBD583j4n0Eg3jIxvWmZtz/5uz9UYkeIStSlMxuUja+ec5j3iBD8nv1rwaOAYMW09tBdkSeaQ==}
+    engines: {node: '>=0.10'}
 
   d3-color@3.1.0:
     resolution: {integrity: sha512-zg/chbXyeBtMQ1LbD/WSoW2DpC3I0mpmPdW+ynRTj/x2DAWYrIY7qeZIHidozwV24m4iavr15lNwIwLxRmOxhA==}
@@ -2826,6 +2952,9 @@ packages:
   kleur@3.0.3:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
+
+  layout-base@2.0.1:
+    resolution: {integrity: sha512-dp3s92+uNI1hWIpPGH3jK2kxE2lMjdXdr+DH8ynZHpd6PUlH6x6cbuXnoMmiNumznqaNO31xu9e79F0uuZ0JFg==}
 
   leaflet@1.9.4:
     resolution: {integrity: sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==}
@@ -4444,6 +4573,60 @@ snapshots:
       style-mod: 4.1.3
       w3c-keyname: 2.2.8
 
+  '@dbx-app/cli-darwin-arm64@0.4.101':
+    optional: true
+
+  '@dbx-app/cli-darwin-x64@0.4.101':
+    optional: true
+
+  '@dbx-app/cli-linux-arm64-gnu@0.4.101':
+    optional: true
+
+  '@dbx-app/cli-linux-x64-gnu@0.4.101':
+    optional: true
+
+  '@dbx-app/cli-win32-arm64@0.4.101':
+    optional: true
+
+  '@dbx-app/cli-win32-x64@0.4.101':
+    optional: true
+
+  '@dbx-app/mcp-darwin-arm64@0.4.101':
+    optional: true
+
+  '@dbx-app/mcp-darwin-x64@0.4.101':
+    optional: true
+
+  '@dbx-app/mcp-linux-arm64-gnu@0.4.101':
+    optional: true
+
+  '@dbx-app/mcp-linux-x64-gnu@0.4.101':
+    optional: true
+
+  '@dbx-app/mcp-win32-arm64@0.4.101':
+    optional: true
+
+  '@dbx-app/mcp-win32-x64@0.4.101':
+    optional: true
+
+  '@dbx-app/plugin-cli-darwin-arm64@0.1.9':
+    optional: true
+
+  '@dbx-app/plugin-cli-darwin-x64@0.1.9':
+    optional: true
+
+  '@dbx-app/plugin-cli-linux-arm64-gnu@0.1.9':
+    optional: true
+
+  '@dbx-app/plugin-cli-linux-x64-gnu@0.1.9':
+    optional: true
+
+  '@dbx-app/plugin-cli-win32-arm64@0.1.9':
+    optional: true
+
+  '@dbx-app/plugin-cli-win32-x64@0.1.9':
+    optional: true
+
   '@dotenvx/dotenvx@1.75.1':
     dependencies:
       '@dotenvx/primitives': 0.8.0
@@ -5799,6 +5982,10 @@ snapshots:
       object-assign: 4.1.1
       vary: 1.1.2
 
+  cose-base@2.2.0:
+    dependencies:
+      layout-base: 2.0.1
+
   crelt@1.0.6: {}
 
   cross-spawn@7.0.6:
@@ -5826,6 +6013,13 @@ snapshots:
   cssesc@3.0.0: {}
 
   csstype@3.2.3: {}
+
+  cytoscape-fcose@2.2.0(cytoscape@3.34.3):
+    dependencies:
+      cose-base: 2.2.0
+      cytoscape: 3.34.3
+
+  cytoscape@3.34.3: {}
 
   d3-color@3.1.0: {}
 
@@ -6528,6 +6722,8 @@ snapshots:
       json-buffer: 3.0.1
 
   kleur@3.0.3: {}
+
+  layout-base@2.0.1: {}
 
   leaflet@1.9.4: {}
 
