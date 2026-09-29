@@ -148,7 +148,7 @@ function restoredEditorViewport(tab: SavedOpenTab): QueryTab["editorViewport"] {
   };
 }
 
-const TAB_OUTPUT_VIEWS = new Set<TabOutputView>(["result", "summary", "explain", "chart", "messages", "profile"]);
+const TAB_OUTPUT_VIEWS = new Set<TabOutputView>(["result", "graph", "summary", "explain", "chart", "messages", "profile"]);
 
 function restoredTabUiState(tab: SavedOpenTab): QueryTab["uiState"] {
   const activeOutputView = tab.uiState?.activeOutputView;
