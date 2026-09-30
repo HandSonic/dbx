@@ -39,6 +39,7 @@ let cy: Core | undefined;
 let observer: ResizeObserver | undefined;
 let themeObserver: MutationObserver | undefined;
 let lastNodeTap = { id: "", at: 0 };
+let disposed = false;
 
 const graph = computed(() => mergeGraphResults(props.graph, expanded.value) ?? props.graph);
 const visibleNodes = computed(() => graph.value.nodes.filter((node) => !hidden.value.has(node.id)).slice(0, MAX_VISIBLE_NODES));
@@ -230,15 +231,17 @@ function togglePin() {
 
 async function expand() {
   if (!selectedNode.value || !props.expandNode || busy.value) return;
+  const sourceGraph = props.graph;
   busy.value = true;
   error.value = "";
   try {
     const result = await props.expandNode(selectedNode.value);
-    expanded.value = mergeGraphResults(expanded.value, result);
+    if (disposed || props.graph !== sourceGraph) return;
+    expanded.value = mergeGraphResults(expanded.value, result ? { ...result, cells: [] } : undefined);
     await nextTick();
     renderGraph(true);
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : String(cause);
+    if (!disposed && props.graph === sourceGraph) error.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
     busy.value = false;
   }
@@ -256,18 +259,21 @@ function startEdit(property: GraphProperty) {
 
 async function save(property: GraphProperty) {
   if (!selected.value || !props.saveProperty || busy.value) return;
+  const entity = selected.value;
+  const sourceGraph = props.graph;
   busy.value = true;
   error.value = "";
   try {
-    const updated = await props.saveProperty(selected.value, property, draft.value);
-    if (!updated) return;
-    const element = selected.value;
+    const updated = await props.saveProperty(entity, property, draft.value);
+    if (!updated || disposed || props.graph !== sourceGraph) return;
+    const element = ("labels" in entity ? graph.value.nodes : graph.value.edges).find((item) => item.id === entity.id);
+    if (!element) return;
     const target = element.properties.find((candidate) => candidate.owner === property.owner && candidate.name === property.name);
     if (target) target.value = updated.value;
-    if (selectedKind.value === "node") cy?.getElementById(element.id).data("label", nodeLabel(element as GraphNode));
-    editing.value = "";
+    if ("labels" in element) cy?.getElementById(element.id).data("label", nodeLabel(element));
+    if (selectedId.value === entity.id) editing.value = "";
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : String(cause);
+    if (!disposed && props.graph === sourceGraph && selectedId.value === entity.id) error.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
     busy.value = false;
   }
@@ -306,6 +312,8 @@ watch(
       })();
     if (!appended) {
       expanded.value = undefined;
+      selectedId.value = "";
+      error.value = "";
       hidden.value = new Set();
       pinned.value = new Set();
     }
@@ -331,6 +339,7 @@ onMounted(() => {
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
 });
 onBeforeUnmount(() => {
+  disposed = true;
   observer?.disconnect();
   themeObserver?.disconnect();
   cy?.destroy();
