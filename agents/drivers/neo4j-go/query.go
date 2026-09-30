@@ -28,7 +28,7 @@ func (s *server) executeQuery(options queryOptions) (queryResult, error) {
 		return queryResult{}, err
 	}
 	maxRows := effectiveMaxRows(options.MaxRows)
-	rows, columns, columnTypes, truncated, err := readResultPage(ctx, result, maxRows)
+	rows, columns, columnTypes, truncated, err := readResultPage(ctx, result, maxRows, s.runtime.legacyGraphIDs)
 	if err != nil {
 		return queryResult{}, err
 	}
@@ -63,7 +63,7 @@ func (s *server) executeQueryPage(options queryOptions, pageSize int) (queryPage
 		s.endOperation(cancel)
 		return queryPageResult{}, err
 	}
-	rows, columns, columnTypes, hasMore, err := readResultPage(ctx, result, pageSize)
+	rows, columns, columnTypes, hasMore, err := readResultPage(ctx, result, pageSize, s.runtime.legacyGraphIDs)
 	if err != nil {
 		_ = session.Close(ctx)
 		s.endOperation(cancel)
@@ -102,7 +102,7 @@ func (s *server) fetchQueryPage(id string, pageSize int) (queryPageResult, error
 	if pageSize > query.remaining {
 		pageSize = query.remaining
 	}
-	rows, _, _, hasMore, err := readResultPage(query.ctx, query.result, pageSize)
+	rows, _, _, hasMore, err := readResultPage(query.ctx, query.result, pageSize, s.runtime.legacyGraphIDs)
 	if err != nil {
 		s.closeQuerySession(id)
 		return queryPageResult{}, err
@@ -201,7 +201,7 @@ func (s *server) executeBatch(params map[string]json.RawMessage) (queryResult, e
 	return emptyQueryResult(time.Since(started)), nil
 }
 
-func readResultPage(ctx context.Context, result neo4j.Result, limit int) ([][]any, []string, []string, bool, error) {
+func readResultPage(ctx context.Context, result neo4j.Result, limit int, legacyGraphIDs bool) ([][]any, []string, []string, bool, error) {
 	if limit < 0 {
 		limit = 0
 	}
@@ -221,7 +221,7 @@ func readResultPage(ctx context.Context, result neo4j.Result, limit int) ([][]an
 		} else {
 			refineColumnTypes(columnTypes, record)
 		}
-		rows = append(rows, normalizeRecord(record, len(columns)))
+		rows = append(rows, normalizeRecord(record, len(columns), legacyGraphIDs))
 	}
 	if err := result.Err(); err != nil {
 		return nil, nil, nil, false, err
@@ -236,13 +236,13 @@ func readResultPage(ctx context.Context, result neo4j.Result, limit int) ([][]an
 	return rows, columns, columnTypes, hasMore, nil
 }
 
-func normalizeRecord(record *neo4j.Record, width int) []any {
+func normalizeRecord(record *neo4j.Record, width int, legacyGraphIDs bool) []any {
 	row := make([]any, width)
 	if record == nil {
 		return row
 	}
 	for index := 0; index < width && index < len(record.Values); index++ {
-		row[index] = normalizeQueryValue(record.Values[index])
+		row[index] = normalizeGraphQueryValue(record.Values[index], legacyGraphIDs)
 	}
 	return row
 }

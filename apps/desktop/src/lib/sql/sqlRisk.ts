@@ -2,6 +2,7 @@ import { classifyElasticsearchRequestRisk, classifyElasticsearchSourceRisk, type
 import { classifySolrRequestRisk, classifySolrSourceRisk } from "@/lib/solr/solrRequestRisk";
 import { mongoAggregateWriteStage, splitMongoCommandRanges, type MongoCommand } from "@/lib/mongo/mongoShellCommand";
 import { isElasticsearchCompatibleDatabaseType, isSolrDatabaseType, type DatabaseType } from "@/types/database";
+import { isProvenReadOnlyCypher } from "./cypherReadOnly";
 
 export type SqlRiskLevel = "read" | "write" | "ddl" | "transaction" | "unknown";
 
@@ -47,6 +48,10 @@ export function splitSqlStatementsForSafety(sql: string): string[] {
 }
 
 export function classifySqlRisk(sql: string, options: SqlRiskOptions = {}): SqlRiskAssessment {
+  if (options.dialect === "neo4j") {
+    const assessment: SqlRiskStatementAssessment = { risk: isProvenReadOnlyCypher(sql) ? "read" : "unknown", firstKeyword: "cypher" };
+    return { ...assessment, statements: [assessment] };
+  }
   const mongoStatements = mongoShellStatements(sql, options.dialect);
   if (mongoStatements) {
     const highest = highestRiskStatement(mongoStatements);
@@ -65,6 +70,7 @@ export function classifySqlRisk(sql: string, options: SqlRiskOptions = {}): SqlR
 }
 
 export function classifySqlStatementRisk(sql: string, options: SqlRiskOptions = {}): SqlRiskStatementAssessment {
+  if (options.dialect === "neo4j") return { risk: isProvenReadOnlyCypher(sql) ? "read" : "unknown", firstKeyword: "cypher" };
   const mongoStatements = mongoShellStatements(sql, options.dialect);
   if (mongoStatements) return highestRiskStatement(mongoStatements);
 

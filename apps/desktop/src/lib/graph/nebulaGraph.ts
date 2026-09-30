@@ -1,5 +1,6 @@
-import type { GraphEdge, GraphNode, GraphProperty, GraphVid } from "./graphResult";
+import { updateGraphResultProperty, type GraphEdge, type GraphNode, type GraphProperty, type GraphVid } from "./graphResult";
 import type { QueryResult } from "@/types/database";
+export { graphPropertyFromUpdateResult } from "./graphResult";
 
 function quoteIdentifier(value: string): string {
   if (
@@ -46,13 +47,6 @@ export function buildNebulaGraphExpand(node: GraphNode): string {
   return `GET SUBGRAPH WITH PROP 1 STEPS FROM ${quoteVid(node.vid)} YIELD VERTICES AS nodes, EDGES AS relationships`;
 }
 
-export function graphPropertyFromUpdateResult(result: QueryResult, property: GraphProperty): GraphProperty {
-  if (result.execution_error) throw new Error(result.error?.detail ?? "NebulaGraph update failed");
-  if (result.rows.length !== 1 || !result.rows[0]?.length || result.rows[0][0] === null) throw new Error("The NebulaGraph property was not updated");
-  const value = result.rows[0][0];
-  return { ...property, value: property.type === "bool" ? value === true || value === "true" : String(value) };
-}
-
 function propertyDisplay(property: GraphProperty): string {
   if (property.value === null) return "NULL";
   return property.type === "string" ? JSON.stringify(property.value) : String(property.value);
@@ -75,18 +69,5 @@ function edgeDisplay(edge: GraphEdge): string {
 }
 
 export function applyGraphPropertyToResult(result: QueryResult, entity: GraphNode | GraphEdge, property: GraphProperty, updated: GraphProperty): void {
-  const graph = result.graph_data;
-  if (!graph) return;
-  const nodes = graph.nodes.filter((node) => node.id === entity.id);
-  const edges = graph.edges.filter((edge) => edge.id === entity.id);
-  for (const item of [...nodes, ...edges]) {
-    const target = item.properties.find((candidate) => candidate.owner === property.owner && candidate.name === property.name);
-    if (target) target.value = updated.value;
-  }
-  const affected = graph.cells.filter((cell) => nodes.some((node) => cell.kind === "vertex" && cell.nodeIds.length === 1 && cell.nodeIds[0] === node.id) || edges.some((edge) => cell.kind === "edge" && cell.edgeIds.length === 1 && cell.edgeIds[0] === edge.id));
-  for (const cell of affected) {
-    const node = nodes.find((candidate) => cell.nodeIds[0] === candidate.id);
-    const edge = edges.find((candidate) => cell.edgeIds[0] === candidate.id);
-    if (result.rows[cell.row]) result.rows[cell.row][cell.column] = node ? nodeDisplay(node) : edge ? edgeDisplay(edge) : result.rows[cell.row][cell.column];
-  }
+  updateGraphResultProperty(result, entity, property, updated, nodeDisplay, edgeDisplay);
 }

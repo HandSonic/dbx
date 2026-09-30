@@ -4,8 +4,8 @@ import { safeLocalStorageGet, safeLocalStorageSet } from "@/lib/backend/safeStor
 import { appendDebugLog, isDebugLoggingEnabled } from "@/lib/backend/debugLog";
 import { canReloadUnavailableDataTab, restoredDataTabReloadFilters } from "@/lib/table/tableDataRefresh";
 import { defaultViewForResult } from "@/lib/query/queryResultDefaultView";
-import { extractGraphCells, type GraphEdge, type GraphNode, type GraphProperty, type GraphResult } from "@/lib/graph/graphResult";
-import { applyGraphPropertyToResult, buildNebulaGraphExpand, buildNebulaGraphPropertyUpdate, graphPropertyFromUpdateResult } from "@/lib/graph/nebulaGraph";
+import { extractGraphCells, graphPropertyFromUpdateResult, type GraphEdge, type GraphNode, type GraphProperty, type GraphResult } from "@/lib/graph/graphResult";
+import { graphAdapterForDatabase } from "@/lib/graph/graphAdapters";
 import { queryResultMessages } from "@/lib/query/queryResultMessages";
 import { isQueryExecutionErrorResult } from "@/lib/query/queryResultError";
 import { hasQueryOutput as tabHasQueryOutput } from "@/lib/query/queryOutput";
@@ -625,7 +625,8 @@ const redisConsoleResults = computed(() => (props.activeTab.results?.length ? pr
 const canShowRedisConsoleOutput = computed(() => activeEffectiveDatabaseType.value === "redis" && (props.activeTab.isExecuting || redisConsoleResults.value.some((result) => result.execution_error === true || typeof result.redis_console_output === "string")));
 const redisResultViewMode = computed<RedisResultViewMode>(() => (activeEffectiveDatabaseType.value === "redis" ? (props.activeTab.uiState?.redisResultViewMode ?? "grid") : "grid"));
 const canShowResultOutput = computed(() => hasTabularResult.value || props.activeTab.isExecuting);
-const canShowGraphOutput = computed(() => activeEffectiveDatabaseType.value === "nebula" && !!props.activeTab.result?.graph_data?.nodes.length);
+const activeGraphAdapter = computed(() => graphAdapterForDatabase(activeEffectiveDatabaseType.value));
+const canShowGraphOutput = computed(() => !!activeGraphAdapter.value && !!props.activeTab.result?.graph_data?.nodes.length);
 const canShowExplainOutput = computed(() => !!props.activeTab.explainPlan || !!props.activeTab.explainError || !!props.activeTab.explainTableResult || !!props.activeTab.explainTableError || props.activeTab.isExplaining === true);
 // A batch can attach server messages to more than one statement result (for
 // example a `DO $$ RAISE NOTICE $$` block followed by a SELECT). The messages
@@ -641,15 +642,16 @@ const canShowMessagesOutput = computed(() => resultMessageCount.value > 0);
 const showStandaloneResultToolbar = computed(() => activeElasticsearchJsonResponse.value || props.activeOutputView !== "result" || (redisResultViewMode.value === "console" && canShowRedisConsoleOutput.value) || !props.activeTab.result || !hasTabularResult.value);
 const standaloneResultToolbarCompact = computed(() => isDataGridToolbarCompact(standaloneResultToolbarWidth.value, standaloneResultToolbarViewportWidth.value));
 
-async function saveNebulaGraphProperty(entity: GraphNode | GraphEdge, property: GraphProperty, value: string | boolean): Promise<GraphProperty | undefined> {
+async function saveGraphProperty(entity: GraphNode | GraphEdge, property: GraphProperty, value: string | boolean): Promise<GraphProperty | undefined> {
   const connection = activeResultConnection.value;
-  if (activeEffectiveDatabaseType.value !== "nebula" || connectionIsEffectivelyReadOnly(connection)) throw new Error(t("graph.unavailable"));
+  const adapter = activeGraphAdapter.value;
+  if (!adapter || connectionIsEffectivelyReadOnly(connection)) throw new Error(t("graph.unavailable"));
   const tab = props.activeTab;
   const result = tab.result;
   const connectionId = activeResultConnectionId.value;
   const database = activeResultDatabase.value;
   if (!result?.graph_data || !connectionId || !database) throw new Error(t("graph.resultChanged"));
-  const statement = buildNebulaGraphPropertyUpdate(entity, property, value);
+  const statement = adapter.buildPropertyUpdate(entity, property, value);
   const production = productionContextForDatabase(connection, database);
   if (production.active) {
     const confirmed = await productionSafetyStore.requestConfirmation({ sql: statement, connectionName: connection?.name, database, productionDatabases: production.databases, source: t("graph.title") });
@@ -661,13 +663,15 @@ async function saveNebulaGraphProperty(entity: GraphNode | GraphEdge, property: 
   if (response.execution_error) throw new Error(response.error?.detail ?? t("graph.updateFailed"));
   if (response.rows.length === 0) throw new Error(t("graph.conflict"));
   const updated = graphPropertyFromUpdateResult(response, property);
-  if (tab.result === result) applyGraphPropertyToResult(result, entity, property, updated);
+  if (tab.result === result) adapter.applyPropertyUpdate(result, entity, property, updated);
   return updated;
 }
 
-async function expandNebulaGraphNode(node: GraphNode): Promise<GraphResult | undefined> {
-  if (activeEffectiveDatabaseType.value !== "nebula" || !activeResultConnectionId.value || !activeResultDatabase.value) return undefined;
-  const response = await api.executeQuery(activeResultConnectionId.value, activeResultDatabase.value, buildNebulaGraphExpand(node), undefined, undefined, { maxRows: 200 });
+async function expandGraphNode(node: GraphNode): Promise<GraphResult | undefined> {
+  const adapter = activeGraphAdapter.value;
+  if (!adapter || !activeResultConnectionId.value || !activeResultDatabase.value) return undefined;
+  const response = await api.executeQuery(activeResultConnectionId.value, activeResultDatabase.value, adapter.buildExpand(node), undefined, undefined, { maxRows: 200 });
+  if (response.execution_error) throw new Error(response.error?.detail ?? t("graph.unavailable"));
   return extractGraphCells(response).graph_data;
 }
 let standaloneResultToolbarResizeObserver: ResizeObserver | undefined;
@@ -2236,8 +2240,8 @@ defineExpose({
               :rows="activeTab.result.rows"
               :columns="activeTab.result.columns"
               :read-only="connectionIsEffectivelyReadOnly(activeResultConnection)"
-              :save-property="saveNebulaGraphProperty"
-              :expand-node="expandNebulaGraphNode"
+              :save-property="saveGraphProperty"
+              :expand-node="expandGraphNode"
             />
 
             <div v-else-if="activeOutputView === 'summary'" class="flex flex-1 min-h-0 min-w-0 overflow-auto bg-background">
