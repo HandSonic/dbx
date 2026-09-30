@@ -491,6 +491,7 @@ interface DataGridProps {
   sortColumnIndex?: number;
   sortDirection?: DataGridSortDirection;
   sortMode?: DataGridSortMode;
+  databaseSortEnabled?: boolean;
   tableMeta?: {
     catalog?: string;
     database?: string;
@@ -590,6 +591,7 @@ const props = withDefaults(defineProps<DataGridProps>(), {
   totalRowCountIsExact: true,
   inexactTotalRowCountMode: "at-least",
   paginationEnabled: true,
+  databaseSortEnabled: true,
   loadAllRowsEnabled: true,
   // Omitted row-action limits must keep normal table-data editing.
   allowInsertRows: undefined,
@@ -911,7 +913,7 @@ function sortMenuItems(column: string, columnIndex: number) {
     column,
     columnIndex,
     state: currentColumnSortState(),
-    databaseSortEnabled: databaseSortSupportedForDatabase(resolvedDatabaseType.value),
+    databaseSortEnabled: props.databaseSortEnabled !== false && databaseSortSupportedForDatabase(resolvedDatabaseType.value),
     labels: {
       databaseAscending: t("grid.sortDatabaseAscending"),
       databaseDescending: t("grid.sortDatabaseDescending"),
@@ -12201,7 +12203,7 @@ const gridContextMenuItems = computed<ContextMenuItem[]>(() => {
       canFilter: canUseWhereSearch.value,
       hasSort: !!sortCol.value,
       sortMode: sortMode.value,
-      databaseSortEnabled: databaseSortSupportedForDatabase(resolvedDatabaseType.value),
+      databaseSortEnabled: props.databaseSortEnabled !== false && databaseSortSupportedForDatabase(resolvedDatabaseType.value),
       frozenColumnCount: frozenColumnCount.value,
       contextVisibleColIdx: contextHeaderVisibleColIdx.value ?? undefined,
       hasColumnSelection: hasColumnSelection.value,
