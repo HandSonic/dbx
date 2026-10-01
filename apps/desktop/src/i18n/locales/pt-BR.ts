@@ -3458,6 +3458,8 @@ export default withEnglishFallback({
     templateSelectorDeselectAll: "Desmarcar todos",
     templateSelectorLoading: "Carregando...",
     skillsEntry: "Skills",
+    skillsSelectAll: "Selecionar tudo",
+    skillsDeselectAll: "Desmarcar tudo",
     skillsLoading: "Carregando skills…",
     skillsEmpty: "Nenhuma skill encontrada ainda",
     skillsRefresh: "Atualizar lista",

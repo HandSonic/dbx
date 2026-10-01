@@ -3644,6 +3644,8 @@ export default withEnglishFallback({
     templateSelectorDeselectAll: "Снять выделение",
     templateSelectorLoading: "Загрузка...",
     skillsEntry: "Навыки",
+    skillsSelectAll: "Выбрать все",
+    skillsDeselectAll: "Снять выделение",
     skillsLoading: "Загрузка навыков…",
     skillsEmpty: "Навыки пока не найдены",
     skillsRefresh: "Обновить",
