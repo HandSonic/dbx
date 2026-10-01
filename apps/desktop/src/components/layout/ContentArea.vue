@@ -70,6 +70,7 @@ import QueryMessagesView from "@/components/layout/QueryMessagesView.vue";
 import QueryResultToolbarActions from "@/components/layout/QueryResultToolbarActions.vue";
 import ResultSetNavigator from "@/components/layout/ResultSetNavigator.vue";
 import QueryResultViewSwitcher from "@/components/layout/QueryResultViewSwitcher.vue";
+import ProductionWatermark from "@/components/common/ProductionWatermark.vue";
 import DataGridCopyFormatControl from "@/components/grid/DataGridCopyFormatControl.vue";
 import DataGridFontFamilyControl from "@/components/grid/DataGridFontFamilyControl.vue";
 import DataGridColumnWidthModeControl from "@/components/grid/DataGridColumnWidthModeControl.vue";
@@ -222,6 +223,7 @@ type DataGridHandle = DataGridColumnLayoutHandle & {
   exportJson: () => Promise<void>;
   exportSql: () => Promise<void>;
   exportXlsx: () => Promise<void>;
+  openXlsx: () => Promise<void>;
 };
 
 type SearchableBrowserHandle = {
@@ -254,7 +256,7 @@ const props = defineProps<
 
 const emit = defineEmits<ContentAreaSurfaceEmits>();
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
 const queryStore = useQueryStore();
 const connectionStore = useConnectionStore();
 /** Clear a consumed editor reveal request so a later normal tab re-visit doesn't re-jump. */
@@ -385,7 +387,6 @@ const activeSqlStatementParameterOptions = computed(() =>
   sqlStatementParameterOptionsForCompatibility(activeEffectiveDatabaseType.value, activeEffectiveDatabaseType.value === "opengauss" ? connectionStore.databaseCompatibilityMode(activeResultConnectionId.value, activeResultDatabase.value) : undefined),
 );
 const activeProductionContext = computed(() => productionContextForDatabase(props.activeConnection, props.activeTab.database));
-const productionWatermarkText = computed(() => (locale.value.startsWith("zh") ? "生产环境" : "PROD"));
 const productionSessionDetail = computed(() => {
   if (!activeProductionContext.value.active) return "";
   if (activeProductionContext.value.reason === "connection") return t("production.connection");
@@ -1706,9 +1707,7 @@ defineExpose({
                 {{ t("contextMenu.viewData") }}
               </Button>
             </div>
-            <div v-if="activeProductionContext.active" class="production-watermark pointer-events-none absolute inset-0 z-10 grid select-none" aria-hidden="true">
-              <span v-for="index in 4" :key="index" class="production-watermark__label whitespace-nowrap font-mono text-6xl font-extrabold text-red-700/[0.12] dark:text-red-200/[0.1]">{{ productionWatermarkText }}</span>
-            </div>
+            <ProductionWatermark v-if="activeProductionContext.active" />
             <!-- issue #9035：源码 tab 先出现再加载。pending 期间不挂载编辑器
                  （还没有内容可编辑，也省下一次 Monaco 初始化），失败则就地重试。
                  issue #9387：DDL 新标签同样先出 tab 再加载，失败就地显示错误。 -->
@@ -2857,10 +2856,11 @@ defineExpose({
           @cancel="emit('cancel', activeTab.id)"
           @update:where-input="(v: string) => (activeTab.whereInput = v)"
           @update:order-by-input="(v: string) => (activeTab.orderByInput = v)"
+          @update:structured-order-by-input="(v: string) => (activeTab.structuredOrderByInput = v || undefined)"
           @local-column-filters-change="(filters: Record<string, string[]>) => queryStore.updateDataGridLocalColumnFilters(activeTab.id, filters)"
           @reload="(sql?: string, searchText?: string, whereInput?: string, orderBy?: string, limit?: number, offset?: number, intent?: DataGridReloadIntent) => emit('reload', activeTab.id, sql, searchText, whereInput, orderBy, limit, offset, intent)"
           @paginate="(offset: number, limit: number, whereInput?: string, orderBy?: string, appendResult?: boolean) => emit('paginate', activeTab.id, offset, limit, whereInput, orderBy, appendResult)"
-          @sort="(column: string, columnIndex: number, direction: 'asc' | 'desc' | null, whereInput?: string, mode?: DataGridSortMode) => emit('sort', activeTab.id, column, columnIndex, direction, whereInput, mode)"
+          @sort="(column: string, columnIndex: number, direction: 'asc' | 'desc' | null, whereInput?: string, mode?: DataGridSortMode, effectiveOrderBy?: string) => emit('sort', activeTab.id, column, columnIndex, direction, whereInput, mode, effectiveOrderBy)"
           @change-query-timeout="(connectionId: string) => emit('openConnectionSettings', connectionId, 'advanced')"
         >
           <template v-if="activeTab.result && isQueryExecutionErrorResult(activeTab.result)" #error-actions="{ errorMessage }">
@@ -3220,28 +3220,6 @@ defineExpose({
 .query-output-splitpanes :deep(> .splitpanes__splitter) {
   z-index: 1;
   flex: 0 0 3px;
-}
-
-.production-watermark {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-  gap: 3rem;
-  overflow: hidden;
-  padding: 3rem 2.5rem;
-}
-
-.production-watermark__label {
-  align-self: center;
-  justify-self: center;
-  transform: rotate(-22deg);
-}
-
-@media (max-width: 700px) {
-  .production-watermark {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-    padding-inline: 1rem;
-  }
 }
 
 .result-tab-scroll::-webkit-scrollbar {
