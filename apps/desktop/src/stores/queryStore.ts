@@ -1,4 +1,5 @@
 import { createQueryRequestTiming } from "@/lib/queryRequestTiming";
+import { appendNeo4jNodeCells, extractNeo4jNodeCells } from "@/lib/neo4j/neo4jNodeResult";
 import { UPDATE_RESTORE_KEY, assertUpdateAllowsInteraction } from "@/lib/app/updatePreparation";
 import { defineStore } from "pinia";
 import { isRedisMonitorCommand, startRedisMonitor } from "@/lib/redis/redisMonitor";
@@ -104,6 +105,7 @@ import { replaceSqlServerLeadingUseQuery, sqlServerLeadingUseScript, switchesDat
 import { classifySqlRisk } from "@/lib/sql/sqlRisk";
 import { externalSqlFileDisplayTitles, normalizeExternalSqlPath } from "@/lib/sql/sqlFileOpen";
 import { clearDataGridPendingSnapshot, clearDataGridPendingSnapshotsForTab } from "@/composables/useDataGridEditor";
+import { combineDataGridOrderByInputs } from "@/composables/useDataGridSortBuilder";
 import { beginClosingDataGridViewSnapshotsForTab, clearDataGridViewSnapshot, clearDataGridViewSnapshotsForTab } from "@/lib/dataGrid/dataGridViewStateCache";
 import { beginClosingBrowserState } from "@/lib/tabs/documentBrowserStateCache";
 import { clearDataGridStructuredFilterStatesForTab } from "@/lib/dataGrid/dataGridFilterBuilderPersistence";
@@ -305,8 +307,10 @@ function droppedTableObjectSchemaCandidates(target: DroppedTableObjectTarget): S
 }
 
 function markQueryResultRowsRaw(result: QueryResult): QueryResult {
+  extractNeo4jNodeCells(result);
   extractGraphCells(result);
   markRaw(result.rows);
+  if (result.neo4j_node_cells) markRaw(result.neo4j_node_cells);
   if (result.large_value_cells) markRaw(result.large_value_cells);
   if (result.mongo_documents) markRaw(result.mongo_documents);
   if (result.mongo_copy_documents) markRaw(result.mongo_copy_documents);
@@ -335,6 +339,8 @@ export function appendQueryResultSegment(previous: QueryResult, segment: QueryRe
     throw new Error("Result columns changed while loading the next segment");
   }
   const remainingRows = Math.max(0, maxRows - previous.rows.length);
+  markQueryResultRowsRaw(previous);
+  markQueryResultRowsRaw(segment);
   const appendedRowCount = Math.min(remainingRows, segment.rows.length);
   const appendParallelValues = <T>(existing: T[] | undefined, next: T[] | undefined): T[] | undefined => {
     if (!existing || !next) return undefined;
@@ -359,6 +365,7 @@ export function appendQueryResultSegment(previous: QueryResult, segment: QueryRe
     appended_from_row_count: previous.rows.length,
     rows: [...previous.rows, ...segment.rows.slice(0, appendedRowCount)],
     graph_data: mergeGraphResults(previous.graph_data, graphResultRows(segment.graph_data, appendedRowCount), previous.rows.length),
+    neo4j_node_cells: appendNeo4jNodeCells(previous, segment, appendedRowCount),
     spatial_columns: spatial_columns.length > 0 ? spatial_columns : undefined,
     spatial_values: appendParallelValues(previous.spatial_values, segment.spatial_values),
     large_value_cells: appendLargeValueCells(previous.large_value_cells, segment.large_value_cells, previous.rows.length, appendedRowCount),
@@ -403,6 +410,7 @@ function releaseResultObjectPayload(result: QueryResult): void {
   result.local_column_filters = undefined;
   result.local_hidden_column_keys = undefined;
   result.mongo_documents = undefined;
+  result.neo4j_node_cells = undefined;
   result.mongo_copy_documents = undefined;
   result.large_value_cells = undefined;
   result.elasticsearch_raw_body = undefined;
@@ -410,6 +418,7 @@ function releaseResultObjectPayload(result: QueryResult): void {
   result.messages = undefined;
   result.error = undefined;
   result.sourceLabel = undefined;
+  result.sourceLabelKind = undefined;
   result.sourceQualifier = undefined;
   result.sourceName = undefined;
   result.sourceStatement = undefined;
@@ -469,9 +478,9 @@ function annotateQueryResultSources(results: QueryResult[], sql: string, databas
     const customName = queryResultNameFromPreamble(preamble, { databaseType });
     if (customName) {
       result.sourceLabel = customName;
-      // 自定义名称（-- name: xxx）优先：清除结构化来源，避免“结果集名称包含数据库名”设置把它替换成表名
-      result.sourceQualifier = undefined;
-      result.sourceName = undefined;
+      result.sourceLabelKind = "comment";
+      // 保留结构化来源，方便“来源表名”模式在注释存在时仍显示表名。
+      // “注释”模式通过 sourceLabelKind 选择这个自定义名称。
     }
     const successfulUseDatabase = result.execution_error !== true ? useDatabaseFromStatement(statement.sql, databaseType) : undefined;
     if (successfulUseDatabase) {
@@ -693,7 +702,10 @@ function annotateQueryResultSource(result: QueryResult, sourceStatement: string,
     result.sourceQualifier = parts.qualifier;
     result.sourceName = parts.name;
     const label = parts.qualifier ? `${parts.qualifier}.${parts.name}` : parts.name;
-    if (label) result.sourceLabel = label;
+    if (label) {
+      result.sourceLabel = label;
+      result.sourceLabelKind = "source";
+    }
   }
   return result;
 }
@@ -1777,9 +1789,12 @@ export const useQueryStore = defineStore("query", () => {
     tab.resultLocalSortOriginalMongoDocuments = undefined;
     tab.resultLocalSortOriginalMongoCopyDocuments = undefined;
     tab.orderByInput = undefined;
+    tab.structuredOrderByInput = undefined;
     tab.resultPageSql = undefined;
     tab.resultPageLimit = undefined;
     tab.resultPageOffset = undefined;
+    tab.resultExecutedPageLimit = undefined;
+    tab.resultExecutedPageOffset = undefined;
     tab.resultCountSql = undefined;
     tab.resultTotalRowCount = undefined;
     tab.resultTotalRowCountLoading = false;
@@ -1861,6 +1876,8 @@ export const useQueryStore = defineStore("query", () => {
     tab.resultPageSql = run.resultPageSql;
     tab.resultPageLimit = run.resultPageLimit;
     tab.resultPageOffset = run.resultPageOffset;
+    tab.resultExecutedPageLimit = run.resultExecutedPageLimit;
+    tab.resultExecutedPageOffset = run.resultExecutedPageOffset;
     tab.resultCountSql = run.resultCountSql;
     tab.resultTotalRowCount = run.resultTotalRowCount;
     tab.resultTotalRowCountLoading = run.resultTotalRowCountLoading;
@@ -2136,6 +2153,8 @@ export const useQueryStore = defineStore("query", () => {
         resultPageSql: run.resultPageSql,
         resultPageLimit: run.resultPageLimit,
         resultPageOffset: run.resultPageOffset,
+        resultExecutedPageLimit: run.resultExecutedPageLimit,
+        resultExecutedPageOffset: run.resultExecutedPageOffset,
         resultCountSql: run.resultCountSql,
         resultTotalRowCount: run.resultTotalRowCount,
         cachedAt: Date.now(),
@@ -2183,6 +2202,7 @@ export const useQueryStore = defineStore("query", () => {
       createdAt,
       sourceLabel: primaryResult?.sourceLabel,
       sourceName: primaryResult?.sourceName,
+      sourceLabelKind: primaryResult?.sourceLabelKind,
       result: tab.result,
       results: tab.results,
       activeResultIndex: tab.activeResultIndex,
@@ -2204,6 +2224,8 @@ export const useQueryStore = defineStore("query", () => {
       resultPageSql: tab.resultPageSql,
       resultPageLimit: tab.resultPageLimit,
       resultPageOffset: tab.resultPageOffset,
+      resultExecutedPageLimit: tab.resultExecutedPageLimit,
+      resultExecutedPageOffset: tab.resultExecutedPageOffset,
       resultCountSql: tab.resultCountSql,
       resultTotalRowCount: tab.resultTotalRowCount,
       resultTotalRowCountLoading: tab.resultTotalRowCountLoading,
@@ -2311,6 +2333,8 @@ export const useQueryStore = defineStore("query", () => {
       resultPageSql: tab.resultPageSql,
       resultPageLimit: tab.resultPageLimit,
       resultPageOffset: tab.resultPageOffset,
+      resultExecutedPageLimit: tab.resultExecutedPageLimit,
+      resultExecutedPageOffset: tab.resultExecutedPageOffset,
       resultCountSql: tab.resultCountSql,
       resultTotalRowCount: tab.resultTotalRowCount,
       resultTotalRowCountLoading: tab.resultTotalRowCountLoading,
@@ -2587,6 +2611,7 @@ export const useQueryStore = defineStore("query", () => {
       resultSortDirection: t.resultSortDirection,
       resultSortMode: t.resultSortMode,
       orderByInput: t.orderByInput,
+      structuredOrderByInput: t.structuredOrderByInput,
       whereInput: t.whereInput,
       pinned: t.pinned,
       mode: t.mode,
@@ -2616,6 +2641,7 @@ export const useQueryStore = defineStore("query", () => {
         customTitle: run.customTitle,
         sourceLabel: run.sourceLabel,
         sourceName: run.sourceName,
+        sourceLabelKind: run.sourceLabelKind,
         activeResultIndex: run.activeResultIndex,
         resultCacheKey: run.resultCacheKey,
         resultEvicted: run.resultEvicted,
@@ -3409,7 +3435,7 @@ export const useQueryStore = defineStore("query", () => {
     const id = uuid();
     const tab: QueryTab = {
       id,
-      title: conn?.name ? `${conn.name} - ${t("processList.title")}` : t("processList.title"),
+      title: conn?.name ? `${conn.name} - ${t(effectiveDatabaseTypeForConnection(conn) === "xugu" ? "processList.transactionTitle" : "processList.title")}` : t("processList.title"),
       connectionId,
       database: conn?.database || "",
       sql: "",
@@ -4640,18 +4666,21 @@ export const useQueryStore = defineStore("query", () => {
       lastExecutedSql: undefined,
       resultBaseSql: original.resultBaseSql,
       resultSortedSql: undefined,
-      resultSortColumn: undefined,
-      resultSortColumnIndex: undefined,
-      resultSortDirection: undefined,
-      resultSortMode: undefined,
+      resultSortColumn: original.mode === "data" && original.resultSortMode === "database" ? original.resultSortColumn : undefined,
+      resultSortColumnIndex: original.mode === "data" && original.resultSortMode === "database" ? original.resultSortColumnIndex : undefined,
+      resultSortDirection: original.mode === "data" && original.resultSortMode === "database" ? original.resultSortDirection : undefined,
+      resultSortMode: original.mode === "data" && original.resultSortMode === "database" ? original.resultSortMode : undefined,
       resultLocalSortOriginalRows: undefined,
       resultLocalSortOriginalLargeValueCells: undefined,
       resultLocalSortOriginalMongoDocuments: undefined,
       resultLocalSortOriginalMongoCopyDocuments: undefined,
-      orderByInput: undefined,
+      orderByInput: original.mode === "data" ? original.orderByInput : undefined,
+      structuredOrderByInput: original.mode === "data" ? original.structuredOrderByInput : undefined,
       resultPageSql: undefined,
-      resultPageLimit: undefined,
-      resultPageOffset: undefined,
+      resultPageLimit: original.mode === "data" ? original.resultPageLimit : undefined,
+      resultPageOffset: original.mode === "data" ? original.resultPageOffset : undefined,
+      resultExecutedPageLimit: undefined,
+      resultExecutedPageOffset: undefined,
       resultCountSql: undefined,
       resultTotalRowCount: undefined,
       resultTotalRowCountLoading: undefined,
@@ -4689,6 +4718,8 @@ export const useQueryStore = defineStore("query", () => {
       objectSource: original.objectSource ? { ...original.objectSource } : undefined,
       sourceView: original.sourceView,
       tableMeta: original.tableMeta ? { ...original.tableMeta, columns: [...original.tableMeta.columns], primaryKeys: [...original.tableMeta.primaryKeys] } : undefined,
+      tableMetaGeneration: original.mode === "data" ? original.tableMetaGeneration : undefined,
+      tableMetaUpdatedAt: original.mode === "data" ? original.tableMetaUpdatedAt : undefined,
       queryAnalysis: original.queryAnalysis ? { ...original.queryAnalysis, sources: original.queryAnalysis.sources?.map((source) => ({ ...source })), columns: original.queryAnalysis.columns.map((c) => ({ ...c })) } : undefined,
       querySourceColumns: original.querySourceColumns ? [...original.querySourceColumns] : undefined,
       queryWriteTargets: original.queryWriteTargets?.map((target) => ({ ...target, sourceColumns: [...target.sourceColumns] })),
@@ -4710,6 +4741,7 @@ export const useQueryStore = defineStore("query", () => {
       focusedGroupId.value = owner.id;
     }
     activeTabId.value = newId;
+    if (newTab.mode === "data") void refreshDataTab(newId);
   }
 
   function closeTabsWhere(predicate: (tab: QueryTab) => boolean) {
@@ -4874,7 +4906,7 @@ export const useQueryStore = defineStore("query", () => {
       clearInvalidDataTabSortState(tab, tableMeta.columns);
       const primaryKeys = tab.tableMeta ? tab.tableMeta.primaryKeys : tableMeta.primaryKeys;
       const sortOrder = tab.resultSortColumn && tab.resultSortDirection ? `${quoteTableDataIdentifier(effectiveDbType, tab.resultSortColumn, identifierQuote)} ${tab.resultSortDirection.toUpperCase()}` : undefined;
-      const orderBy = tab.orderByInput?.trim() || sortOrder;
+      const orderBy = combineDataGridOrderByInputs(tab.orderByInput, tab.structuredOrderByInput) || sortOrder;
       const limit = tab.resultPageLimit ?? tableOpenPageLimit(settingsStore.editorSettings.tableOpenPageSize);
       const offset = tab.resultPageOffset ?? 0;
       const useDriverRowOffset = jdbcConnectionUsesDriverRowOffset(conn, effectiveDbType);
@@ -5622,7 +5654,11 @@ export const useQueryStore = defineStore("query", () => {
       tab.orderByInput,
       columns.map((column) => column.name),
     );
-    if (!structuredSortMissing && !simpleOrderMissing) return false;
+    const structuredOrderMissing = simpleDataGridOrderByReferencesMissingColumn(
+      tab.structuredOrderByInput,
+      columns.map((column) => column.name),
+    );
+    if (!structuredSortMissing && !simpleOrderMissing && !structuredOrderMissing) return false;
     if (structuredSortMissing) {
       tab.resultSortColumn = undefined;
       tab.resultSortColumnIndex = undefined;
@@ -5635,6 +5671,7 @@ export const useQueryStore = defineStore("query", () => {
       tab.resultLocalSortOriginalMongoCopyDocuments = undefined;
     }
     if (simpleOrderMissing) tab.orderByInput = undefined;
+    if (structuredOrderMissing) tab.structuredOrderByInput = undefined;
     return true;
   }
 
@@ -5926,8 +5963,12 @@ export const useQueryStore = defineStore("query", () => {
       });
       if (nextLabel) {
         tab.result.sourceLabel = nextLabel;
+        tab.result.sourceLabelKind = "source";
         const matching = tab.results?.find((result) => result === tab.result);
-        if (matching) matching.sourceLabel = nextLabel;
+        if (matching) {
+          matching.sourceLabel = nextLabel;
+          matching.sourceLabelKind = "source";
+        }
       }
     }
   }
@@ -7109,6 +7150,7 @@ export const useQueryStore = defineStore("query", () => {
               annotated.sourceQualifier = currentDatabase || undefined;
               annotated.sourceName = mongoCommand.collection;
               annotated.sourceLabel = currentDatabase ? `${currentDatabase}.${mongoCommand.collection}` : mongoCommand.collection;
+              annotated.sourceLabelKind = "source";
             }
             return commandTiming.finish(annotated);
           };
@@ -7518,6 +7560,8 @@ export const useQueryStore = defineStore("query", () => {
           current.resultPageSql = undefined;
           current.resultPageLimit = mongoFindPageState?.pageLimit;
           current.resultPageOffset = shouldAppendResult ? (current.resultPageOffset ?? 0) : mongoFindPageState?.pageOffset;
+          current.resultExecutedPageLimit = mongoFindPageState?.pageLimit;
+          current.resultExecutedPageOffset = mongoFindPageState?.pageOffset;
           current.resultCountSql = undefined;
           current.resultSessionId = undefined;
           current.resultClientSessionId = undefined;
@@ -8034,6 +8078,10 @@ export const useQueryStore = defineStore("query", () => {
         const displayPageLimit = typeof pageLimit === "number" ? (requestedPageLimit ?? pageLimit) : undefined;
         current.resultPageLimit = shouldAppendResult ? (current.resultPageLimit ?? displayPageLimit) : displayPageLimit;
         current.resultPageOffset = shouldAppendResult ? (current.resultPageOffset ?? 0) : pageOffset;
+        // An appended segment keeps the base page above, but the SQL shown for the
+        // grid has to describe the segment that actually ran.
+        current.resultExecutedPageLimit = pageLimit;
+        current.resultExecutedPageOffset = pageOffset;
         current.resultCountSql = countSql;
         current.resultSessionId = current.result?.session_id ?? undefined;
         current.resultClientSessionId = current.resultSessionId ? executionClientSessionId : undefined;
@@ -8210,6 +8258,8 @@ export const useQueryStore = defineStore("query", () => {
         current.resultPageSql = pageSql;
         current.resultPageLimit = typeof pageLimit === "number" ? (requestedPageLimit ?? pageLimit) : undefined;
         current.resultPageOffset = pageOffset;
+        current.resultExecutedPageLimit = pageLimit;
+        current.resultExecutedPageOffset = pageOffset;
         current.resultCountSql = countSql;
         current.resultSessionId = undefined;
         current.resultClientSessionId = undefined;
@@ -8717,6 +8767,61 @@ export const useQueryStore = defineStore("query", () => {
     }
   }
 
+  async function resolveResultMetadataForBatch(id: string, result: QueryResult): Promise<QueryMetadataPatch | undefined> {
+    const tab = findExecutionTab(id);
+    if (!tab || !result.sourceStatement) return undefined;
+    // Resolve on a detached context: checking a non-active result must never
+    // replace the visible grid or apply its metadata to another result.
+    const location = queryResultExecutionLocation(tab);
+    const connection = useConnectionStore().getConfig(location.connectionId);
+    const databaseType = effectiveDatabaseTypeForConnection(connection);
+    if (result === tab.result) {
+      if (tab.mode === "data" && (tab.tableMetaPending || !tab.tableMeta?.columns.length)) return undefined;
+      const tableMeta = tab.mode === "data" ? tableMetaForDataTab(tab) : tab.tableMeta;
+      const structure = analyzeSelectStructureForDisplay(result.sourceStatement);
+      const sameTable = structure?.tableName && tableMeta?.tableName && structure.tableName.toLowerCase() === tableMeta.tableName.toLowerCase() && (!structure.schema || !tableMeta.schema || structure.schema.toLowerCase() === tableMeta.schema.toLowerCase());
+      if (!sameTable || !tableMeta?.tableName || !canInsertTableRows(databaseType) || tableMeta.tableType?.toUpperCase().includes("VIEW")) return undefined;
+      const metadataNames = tableMeta.columns.map((column) => column.name);
+      const querySourceColumns = structure.selectStar
+        ? result.columns.map((column) => resolveMetadataColumnName(databaseType ?? "", column, undefined, metadataNames))
+        : structure.columns.length === result.columns.length
+          ? structure.columns.map((column) => {
+              if (!column.sourceName || (column.sourceQualifier && !column.sourceKey)) return undefined;
+              return resolveMetadataColumnName(databaseType ?? "", column.sourceName, column.sourceNameQuoted, metadataNames);
+            })
+          : undefined;
+      if (!querySourceColumns || querySourceColumns.some((column) => !column)) return undefined;
+      return {
+        queryAnalysis: {
+          schema: tableMeta.schema,
+          tableName: tableMeta.tableName,
+          tableAlias: structure.tableAlias,
+          selectStar: structure.selectStar,
+          columns: structure.columns,
+          allowInsert: true,
+          allowInsertDelete: true,
+        },
+        querySourceColumns,
+        queryEditabilityReason: undefined,
+        tableMeta,
+      };
+    }
+    const statements = splitSqlStatementRanges(tab.resultBaseSql ?? tab.lastExecutedSql ?? tab.sql, databaseType);
+    const resultIndex = Number.isInteger(result.statement_index) && result.statement_index! >= 0 ? result.statement_index! : Math.max(0, tab.results?.indexOf(result) ?? 0);
+    for (const [index, statement] of statements.entries()) {
+      if (index >= resultIndex) break;
+      const statementResult = tab.results?.find((candidate, fallbackIndex) => (candidate.statement_index ?? fallbackIndex) === index);
+      if (statementResult?.execution_error) continue;
+      location.database = useDatabaseFromStatement(statement.sql, databaseType) ?? location.database;
+    }
+    // Batch actions can also be invoked from data/table tabs. Metadata
+    // resolution is read-only and uses the same query parser, so provide the
+    // query-mode context expected by buildQueryMetadataPatch without changing
+    // the live tab mode or its displayed result.
+    const context = { ...tab, ...location, mode: "query" as const, result };
+    return buildQueryMetadataPatch(context, result.sourceStatement, location.database, undefined, undefined, [], connection);
+  }
+
   function setActiveResultIndex(id: string, index: number) {
     const tab = findExecutionTab(id);
     if (!tab?.results || index < 0 || index >= tab.results.length) return;
@@ -8886,6 +8991,8 @@ export const useQueryStore = defineStore("query", () => {
     // Restoring this state must not change the global page-size defaults.
     tab.resultPageLimit = snapshot.resultPageLimit;
     tab.resultPageOffset = snapshot.resultPageOffset;
+    tab.resultExecutedPageLimit = snapshot.resultExecutedPageLimit;
+    tab.resultExecutedPageOffset = snapshot.resultExecutedPageOffset;
     tab.resultCountSql = snapshot.resultCountSql;
     tab.resultTotalRowCount = snapshot.resultTotalRowCount;
     tab.resultTotalRowCountLoading = false;
@@ -9006,7 +9113,7 @@ export const useQueryStore = defineStore("query", () => {
       const identifierQuote = connStore.connectionIdentifierQuote?.(tab.connectionId);
       const primaryKeys = tab.tableMeta ? tab.tableMeta.primaryKeys : tableMeta.primaryKeys;
       const sortOrder = tab.resultSortColumn && tab.resultSortDirection ? `${quoteTableDataIdentifier(effectiveDbType, tab.resultSortColumn, identifierQuote)} ${tab.resultSortDirection.toUpperCase()}` : undefined;
-      const orderBy = tab.orderByInput?.trim() || sortOrder;
+      const orderBy = combineDataGridOrderByInputs(tab.orderByInput, tab.structuredOrderByInput) || sortOrder;
       const queryTimeoutSecs = queryTimeoutSecsForConnection(conn, settingsStore.editorSettings.globalQueryTimeoutSecs);
       const executionDatabase = tab.database;
       const rows: QueryResult["rows"] = [];
@@ -9533,6 +9640,7 @@ export const useQueryStore = defineStore("query", () => {
     closeQueryResult,
     clearQueryResults,
     setActiveResultIndex,
+    resolveResultMetadataForBatch,
     executeCurrentTab,
     executeCurrentSql,
     executeTabSql,

@@ -120,6 +120,8 @@ export interface PluginFileHandleMeta {
   name: string;
   size: number;
   contentType: string;
+  /** Only for files expanded out of a dropped folder: '/'-separated path relative to the dropped folder root, so the plugin can rebuild the dragged tree. */
+  relativePath?: string;
 }
 
 export interface PluginPickFilesOptions {
@@ -161,7 +163,18 @@ export interface PluginHostBridgeApi {
   generateAiText?(pluginName: string, input: PluginAiGenerateRequest): Promise<string>;
   openAiConversation?(request: AiPluginConversationRequest): Promise<void>;
   setAiRecommendations?(update: PluginAiRecommendationHostUpdate): void;
-  openWorkbench?(pluginId: string, contributionId: string, context?: PluginWorkbenchContext, options?: { forceNew?: boolean }): Promise<void> | void;
+  openWorkbench?(pluginId: string, contributionId: string, context?: PluginWorkbenchContext, options?: { forceNew?: boolean; target?: "tab" }): Promise<void> | void;
+  /**
+   * §4/§5 command execution asked from a plugin webview: the same registry
+   * path as menu execution — enablement (§5.4), §4.1 singleton reuse,
+   * host-authored context — scoped to the calling plugin's own declared
+   * commands. The optional context merges over the command-declared context
+   * (caller wins; reserved identity fields are host-owned) and feeds
+   * `instance_key` `{{path}}` placeholders, so per-connection instances are
+   * one `logs:{{connectionId}}` declaration away. Resolves `{ error }` for
+   * expected business outcomes; only bridge or permission failures reject.
+   */
+  executeCommand?(pluginId: string, commandId: string, context?: Record<string, unknown>): Promise<{ error?: string } | null | void> | { error?: string } | null | void;
   openFilesystem?(pluginId: string, providerId: string, context?: PluginWorkbenchContext): Promise<void> | void;
   /** Explicit user-triggered reconnect of an owned plugin connection (full flow, interactive password prompt allowed). */
   reopenConnection?(pluginId: string, connectionId: string): Promise<void>;
@@ -239,6 +252,8 @@ export interface PluginHostBridgeApi {
   finishFileSave?(pluginId: string, handleId: string): Promise<void>;
   /** Close any file handle, discarding unsaved state. */
   closeFileHandle?(pluginId: string, handleId: string): Promise<void>;
+  /** Whether this host receives OS file drops on the plugin's behalf (desktop only). */
+  receiveOsDrops?: boolean;
   /** Persistent per-plugin key-value storage for sandboxed UIs; resolves null when the key is unset. */
   storageGet?(pluginId: string, key: string): Promise<unknown>;
   storageSet?(pluginId: string, key: string, value: unknown): Promise<void>;
@@ -449,6 +464,16 @@ export class PluginHostBridge {
         clipboardRead: !!this.api.clipboardRead,
         clipboardImageRead: !!this.api.clipboardReadImage,
         mediaUrl: !!this.api.openMedia && !!this.api.closeMedia,
+        // The namespace exists on both hosts, but what it can DO differs:
+        // portable plugins gate on these flags instead of probing calls.
+        fileTransfer: {
+          pick: !!this.api.pickFiles,
+          beginSave: !!this.api.beginFileSave && !!this.api.writeFileChunk && !!this.api.finishFileSave,
+          read: !!this.api.readFileChunk,
+          // OS drops (and their folder expansion) are desktop-only.
+          drop: !!this.api.receiveOsDrops,
+          folderExpansion: !!this.api.receiveOsDrops,
+        },
       },
       context: snapshotPluginWorkbenchContext(this.context),
     });
@@ -528,8 +553,8 @@ export class PluginHostBridge {
   }
 
   /** Hand the plugin already-opened handles for files dropped onto its workbench. */
-  forwardFileDrop(files: PluginFileHandleMeta[]): void {
-    this.post({ source: HOST_MESSAGE_SOURCE, version: BRIDGE_VERSION, type: "filedrop", files });
+  forwardFileDrop(files: PluginFileHandleMeta[], drop?: { dropId?: string; truncated?: boolean }): void {
+    this.post({ source: HOST_MESSAGE_SOURCE, version: BRIDGE_VERSION, type: "filedrop", files, dropId: drop?.dropId, truncated: drop?.truncated === true });
   }
 
   private async handleRequest(request: PluginRequestMessage, target: Window): Promise<void> {
@@ -660,8 +685,18 @@ export class PluginHostBridge {
       this.requirePermission("host.workbench");
       if (!this.api.openWorkbench) throw new Error("Host workbench navigation is unavailable");
       const input = requireRecord(params, "host.openWorkbench params");
-      await this.api.openWorkbench(this.plugin.manifest.id, requireProtocolName(input.contributionId, "workbench contribution"), isRecord(input.context) ? input.context : undefined, { forceNew: input.forceNew === true });
+      // `target: "tab"` lets a dock-hosted webview ask for a main-workbench
+      // tab instead of another dock entry (e.g. the SSH dock's "open session
+      // in tab" button). Surfaces that ignore it keep the old behavior, so
+      // older handlers stay compatible.
+      await this.api.openWorkbench(this.plugin.manifest.id, requireProtocolName(input.contributionId, "workbench contribution"), isRecord(input.context) ? input.context : undefined, { forceNew: input.forceNew === true, target: input.target === "tab" ? "tab" : undefined });
       return null;
+    }
+    if (method === "host.executeCommand") {
+      this.requirePermission("host.workbench");
+      if (!this.api.executeCommand) throw new Error("Host command execution is unavailable");
+      const input = requireRecord(params, "host.executeCommand params");
+      return (await this.api.executeCommand(this.plugin.manifest.id, requireProtocolName(input.commandId, "command id"), isRecord(input.context) ? input.context : undefined)) ?? {};
     }
     if (method === "host.reopenConnection") {
       if (!this.api.reopenConnection) throw new Error("Connection reopen is unavailable");
@@ -1208,7 +1243,16 @@ export function pluginSdkSource(initialTheme?: PluginBridgeTheme): string {
         const asset = await request('ui.readAsset', { path });
         return URL.createObjectURL(new Blob([decode(asset.dataBase64)], { type: asset.contentType }));
       },
-      openWorkbench: (contributionId, childContext, options) => request('host.openWorkbench', { contributionId, context: childContext, forceNew: !!(options && options.forceNew) }),
+      openWorkbench: (contributionId, childContext, options) => request('host.openWorkbench', { contributionId, context: childContext, forceNew: !!(options && options.forceNew), target: options && options.target === "tab" ? "tab" : undefined }),
+      // §4/§5 command execution from a webview — the same registry path a menu
+      // placement takes (enablement, §4.1 reuse, host-authored context),
+      // scoped to the plugin's own declared commands. The optional context
+      // merges over the command context and scopes instance_key placeholders
+      // (e.g. one panel per connection). Resolves { error } for expected
+      // business outcomes so callers can surface a notice without try/catch.
+      // NOTE: this block is the sandbox bootstrap template source — comments
+      // here must not contain backticks or dollar-brace interpolation.
+      executeCommand: (commandId, context) => request('host.executeCommand', { commandId, context }),
       openFilesystem: (providerId, childContext) => request('host.openFilesystem', { providerId, context: childContext }),
       reopenConnection: (connectionId) => request('host.reopenConnection', { connectionId }),
       // Estimated plans only: mode must be sent explicitly so a plugin states
@@ -1326,8 +1370,11 @@ export function pluginSdkSource(initialTheme?: PluginBridgeTheme): string {
         document.dispatchEvent(new CustomEvent('dbx-plugin-binary', { detail: payload }));
       } else if (message.type === 'filedrop') {
         const files = Array.isArray(message.files) ? message.files : [];
-        listeners.filedrop.forEach((listener) => listener(files));
-        document.dispatchEvent(new CustomEvent('dbx-plugin-filedrop', { detail: files }));
+        // The drop metadata rides as a second listener argument so existing
+        // single-parameter listeners keep working unchanged.
+        const drop = { dropId: typeof message.dropId === 'string' ? message.dropId : undefined, truncated: message.truncated === true };
+        listeners.filedrop.forEach((listener) => listener(files, drop));
+        document.dispatchEvent(new CustomEvent('dbx-plugin-filedrop', { detail: { files, drop } }));
       } else if (message.type === 'dragstate') {
         const active = message.active === true;
         listeners.dragstate.forEach((listener) => listener(active));

@@ -130,6 +130,13 @@ export interface ConnectionConfig {
   client_key_path?: string;
   sysdba?: boolean;
   oracle_connection_type?: "service_name" | "sid" | "tns";
+  /** Connection-level NLS_LANG override; empty follows the global default. */
+  oracle_oci_nls_lang?: string;
+  /**
+   * Connection-level TNS_ADMIN override for OCI (tnsnames.ora / sqlnet.ora /
+   * wallet directory); empty follows the global default.
+   */
+  oracle_oci_tns_admin?: string;
   connection_string?: string;
   jdbc_driver_class?: string;
   jdbc_driver_paths?: string[];
@@ -190,6 +197,26 @@ export interface ConnectionTestResult {
   message: string;
   databaseInfo?: DatabaseConnectionInfo;
 }
+
+/**
+ * Why the backend declared a connection's pools dead while the app was idle (#4339).
+ * A stable enum by design: raw driver/network error text must not reach a background
+ * UI notification.
+ */
+export type ConnectionLivenessFailureKind = "probe_failed" | "timed_out";
+
+/**
+ * A message on the backend connection-liveness channel (#4339).
+ *
+ * Mirrors the Rust `ConnectionLivenessMessage`, and both transports deliver this exact shape:
+ * the desktop shell forwards it unwrapped and the web SSE stream sends the object itself, so
+ * there is no envelope beyond the message's own `kind` discriminator.
+ *
+ * `resync` means the transport skipped messages, so the frontend must re-check every
+ * connection it still shows as connected — without it, a dropped `lost` would leave a
+ * sidebar green indefinitely.
+ */
+export type ConnectionLivenessMessage = { kind: "lost"; connectionId: string; failureKind: ConnectionLivenessFailureKind } | { kind: "resync" };
 
 export type TransportLayerConfig = ({ type: "ssh" } & SshTunnelConfig) | ({ type: "proxy" } & ProxyTunnelConfig) | ({ type: "http_tunnel" } & HttpTunnelConfig);
 
@@ -487,6 +514,7 @@ export interface PluginContextMenuContribution {
   description?: string;
   icon?: string;
   menu: PluginContextMenuTarget;
+  dynamic?: boolean;
   action?: PluginOpenWorkbenchTarget;
 }
 
@@ -1239,9 +1267,13 @@ export interface QueryMessage {
   hint?: string;
 }
 
+export type QueryResultSourceLabelKind = "source" | "comment";
+
 export interface QueryResult {
   columns: string[];
   graph_data?: GraphResult;
+  /** Typed Neo4j node properties; source columns remain unchanged for paging. */
+  neo4j_node_cells?: import("@/lib/neo4j/neo4jNodeResult").Neo4jNodeCell[];
   /** One SRID per geometry/geography column (first non-null observed). */
   spatial_columns?: SpatialColumn[];
   /**
@@ -1333,6 +1365,8 @@ export interface QueryResult {
   /** Preformatted Redis command output retained alongside the default grid rows. */
   redis_console_output?: string;
   sourceLabel?: string;
+  /** Identifies whether sourceLabel came from a parsed object source or a SQL preamble comment. */
+  sourceLabelKind?: QueryResultSourceLabelKind;
   /** 结果集来源的库名 / schema（与 sourceLabel 同时写入），供结果集页签按设置决定是否展示。 */
   sourceQualifier?: string;
   /** 结果集来源的对象名（通常为表名），关闭“结果集名称包含数据库名”时用于展示短名称。 */
@@ -1415,6 +1449,8 @@ export interface QueryResultRun {
    */
   sourceLabel?: string;
   sourceName?: string;
+  /** Identifies whether sourceLabel came from a parsed object source or a SQL preamble comment. */
+  sourceLabelKind?: QueryResultSourceLabelKind;
   /**
    * Logical-result identity for the tab-switch view snapshot cache. Distinct
    * from `resultGridRevision` (the grid remount key): this one changes on every
@@ -1442,6 +1478,8 @@ export interface QueryResultRun {
   resultPageSql?: string;
   resultPageLimit?: number;
   resultPageOffset?: number;
+  resultExecutedPageLimit?: number;
+  resultExecutedPageOffset?: number;
   resultCountSql?: string;
   resultTotalRowCount?: number;
   resultTotalRowCountLoading?: boolean;
@@ -1912,9 +1950,24 @@ export interface QueryTab {
   resultLocalSortOriginalMongoDocuments?: QueryResult["mongo_documents"];
   resultLocalSortOriginalMongoCopyDocuments?: QueryResult["mongo_copy_documents"];
   orderByInput?: string;
+  /**
+   * Structured (sort builder) ORDER BY applied on top of `orderByInput`. Kept as
+   * a sibling field so the manual input stays editable while store-side SQL
+   * rebuilds (refresh/export/restore) still reproduce the composite sort.
+   */
+  structuredOrderByInput?: string;
   resultPageSql?: string;
   resultPageLimit?: number;
   resultPageOffset?: number;
+  /**
+   * Pagination of the execution that actually produced (or extended) the
+   * displayed result. `resultPageLimit`/`resultPageOffset` deliberately stay on
+   * the logical first page so a later refresh never re-runs only the appended
+   * tail segment; this pair mirrors the segment that ran instead, which the grid
+   * needs to show the SQL behind the current rows after "load all".
+   */
+  resultExecutedPageLimit?: number;
+  resultExecutedPageOffset?: number;
   resultCountSql?: string;
   resultTotalRowCount?: number;
   resultTotalRowCountLoading?: boolean;
