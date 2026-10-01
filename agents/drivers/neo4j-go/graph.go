@@ -41,6 +41,7 @@ type graphEdge struct {
 }
 
 type graphCell struct {
+	*nodeCell
 	Marker       string      `json:"__dbx_graph_cell"`
 	Kind         string      `json:"kind"`
 	Display      any         `json:"display"`
@@ -52,7 +53,9 @@ type graphCell struct {
 func normalizeGraphQueryValue(value any, legacyIDs bool) any {
 	display := normalizeQueryValue(value)
 	cell := &graphCell{Marker: "neo4j-v1", Kind: strings.ToLower(neo4jTypeName(value)), Display: display, Nodes: []graphNode{}, Edges: []graphEdge{}}
-	if _, ok := value.(neo4j.Node); ok {
+	if node, ok := value.(neo4j.Node); ok {
+		tableCell := normalizeNodeCell(node)
+		cell.nodeCell = &tableCell
 		cell.Kind = "vertex"
 	}
 	if _, ok := value.(neo4j.Relationship); ok {

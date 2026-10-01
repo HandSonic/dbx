@@ -57,7 +57,7 @@ interface GraphCellEnvelope {
   displayParts?: GraphDisplayPart[];
 }
 
-function graphCellEnvelope(value: unknown): value is GraphCellEnvelope {
+export function isGraphCellEnvelope(value: unknown): value is GraphCellEnvelope {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const cell = value as Partial<GraphCellEnvelope>;
   return (cell.__dbx_graph_cell === "nebula-v1" || cell.__dbx_graph_cell === "neo4j-v1") && typeof cell.display === "string" && typeof cell.kind === "string" && Array.isArray(cell.nodes) && Array.isArray(cell.edges);
@@ -118,7 +118,7 @@ export function extractGraphCells(result: QueryResult): QueryResult {
   const cells: GraphCellRef[] = [];
   result.rows.forEach((row, rowIndex) => {
     row.forEach((value, columnIndex) => {
-      if (!graphCellEnvelope(value)) return;
+      if (!isGraphCellEnvelope(value)) return;
       rows ??= result.rows.map((original) => [...original]);
       rows[rowIndex][columnIndex] = value.display;
       for (const node of value.nodes) {
