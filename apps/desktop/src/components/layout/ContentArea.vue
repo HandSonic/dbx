@@ -539,9 +539,9 @@ const neo4jNodeTable = useNeo4jNodeTableResult(
 const activeGridResult = computed(() => (hasNeo4jNodes.value ? neo4jNodeTable.result.value : props.activeTab.result));
 const activeGridSort = computed(() => (hasNeo4jNodes.value ? neo4jNodeTable.sort.value : undefined));
 
-function sortQueryGrid(column: string, columnIndex: number, direction: "asc" | "desc" | null, whereInput?: string, mode?: DataGridSortMode) {
+function sortQueryGrid(column: string, columnIndex: number, direction: "asc" | "desc" | null, whereInput?: string, mode?: DataGridSortMode, effectiveOrderBy?: string) {
   if (hasNeo4jNodes.value) neo4jNodeTable.setSort(column, columnIndex, direction);
-  else emit("sort", props.activeTab.id, column, columnIndex, direction, whereInput, mode);
+  else emit("sort", props.activeTab.id, column, columnIndex, direction, whereInput, mode, effectiveOrderBy);
 }
 
 async function fetchGridResultForExport(onProgress?: (info: { rowsExported: number; totalRows: number | null }) => void) {
@@ -2399,7 +2399,7 @@ defineExpose({
                 :on-execute-sql="async (sql: string) => emit('executeSql', activeTab.id, sql)"
                 :full-export-result="fetchGridResultForExport"
                 :query-result-export-request="
-                  activeEffectiveDatabaseType === 'neo4j'
+                  hasNeo4jNodes
                     ? undefined
                     : (options: {
                         exportId: string;
