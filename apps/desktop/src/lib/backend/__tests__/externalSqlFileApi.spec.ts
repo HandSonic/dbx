@@ -9,7 +9,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: mocks.invoke,
 }));
 
-import { inspectExternalSqlFile, readExternalSqlFile, readExternalSqlFileSnapshot, writeExternalSqlFile } from "@/lib/backend/tauri";
+import { inspectExternalSqlFile, readExternalSqlFile, readExternalSqlFileSnapshot, saveExternalSqlFile, writeExternalSqlFile } from "@/lib/backend/tauri";
 
 const version = {
   sizeBytes: 9,
@@ -33,6 +33,14 @@ describe("external SQL file API", () => {
     mocks.invoke.mockResolvedValue({ kind: "content", content: "select 1;", version });
 
     await expect(readExternalSqlFileSnapshot("/tmp/demo.sql")).resolves.toEqual({ content: "select 1;", version });
+  });
+
+  it("preserves the JavaScript filename and filter when saving a MongoDB script copy", async () => {
+    const saved = { path: "/qa/qa-copy.js", version };
+    const content = 'db.qa_people.find({ name: "QA" });';
+    mocks.invoke.mockResolvedValue(saved);
+    await expect(saveExternalSqlFile("qa-query.js", content, "js")).resolves.toEqual(saved);
+    expect(mocks.invoke).toHaveBeenCalledWith("save_external_sql_file", { defaultFileName: "qa-query.js", content, filterExtension: "js" });
   });
 
   it("inspects metadata without reading editor content", async () => {

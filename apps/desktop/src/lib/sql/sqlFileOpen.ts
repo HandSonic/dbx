@@ -1,3 +1,13 @@
+import type { DatabaseType } from "@/types/database";
+
+export function queryEditorFilePicker(dbType?: DatabaseType) {
+  const extensions = dbType === "mongodb" ? ["js", "sql"] : ["sql"];
+  return {
+    filters: [{ name: dbType === "mongodb" ? "MongoDB scripts" : "SQL", extensions }],
+    accept: extensions.map((extension) => `.${extension}`).join(","),
+  };
+}
+
 export function isSqlFilePath(path: string): boolean {
   return /\.sql$/i.test(path.trim());
 }

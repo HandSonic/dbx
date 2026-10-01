@@ -63,10 +63,20 @@ describe("external SQL file targets", () => {
     expect(activeTabExternalSqlFileTarget(tabs, "missing-tab", () => ({ db_type: "postgres" }))).toEqual(unassociatedExternalSqlFileTarget());
   });
 
-  it.each(["mq", "zookeeper", "plugin", "redis"] as const)("does not reuse a non-SQL %s tab target", (dbType) => {
+  it.each(["mq", "zookeeper", "plugin", "redis", "mongodb"] as const)("does not reuse a non-SQL %s tab target", (dbType) => {
     const tabs = [{ id: "active-tab", connectionId: "non-sql-connection", database: "invalid", catalog: "invalid", schema: "invalid", mode: "query" as const }];
 
     expect(activeTabExternalSqlFileTarget(tabs, "active-tab", () => ({ db_type: dbType }))).toEqual(unassociatedExternalSqlFileTarget());
+  });
+
+  it("preserves MongoDB editor context only when script opening explicitly allows it", () => {
+    const tabs = [{ id: "mongo-tab", connectionId: "mongo-connection", database: "qa_demo", mode: "query" as const }];
+    const lookup = () => ({ db_type: "mongodb" as const });
+    const target = { connectionId: "mongo-connection", database: "qa_demo", catalog: undefined, schema: undefined };
+    expect(activeTabExternalSqlFileTarget(tabs, "mongo-tab", lookup, { allowMongoScripts: true })).toEqual(target);
+    expect(resolveExternalSqlFileTargetForActiveTab("/qa/query.js", tabs, "mongo-tab", lookup, { allowMongoScripts: true })).toEqual(target);
+    expect(resolveExternalSqlFileTargetForActiveTab("/qa/query.js", tabs, "mongo-tab", lookup)).toEqual(unassociatedExternalSqlFileTarget());
+    expect(activeTabExternalSqlFileTarget(tabs, "mongo-tab", () => ({ db_type: "redis" }), { allowMongoScripts: true })).toEqual(unassociatedExternalSqlFileTarget());
   });
 
   it.each(["plugin-workbench", "plugin-filesystem"] as const)("does not reuse a SQL connection borrowed by a %s tab", (mode) => {

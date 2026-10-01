@@ -15,7 +15,28 @@ import {
   normalizeExternalSqlEditorMaxMb,
   normalizeExternalSqlPath,
   readBrowserSqlFile,
+  queryEditorFilePicker,
+  sqlFileTitleFromPath,
 } from "@/lib/sql/sqlFileOpen";
+import type { DatabaseType } from "@/types/database";
+
+describe("query editor file picker", () => {
+  it("accepts MongoDB JavaScript and existing SQL files in both runtimes", () => {
+    expect(queryEditorFilePicker("mongodb")).toEqual({ filters: [{ name: "MongoDB scripts", extensions: ["js", "sql"] }], accept: ".js,.sql" });
+  });
+
+  it.each<DatabaseType | undefined>(["mysql", "postgres", "sqlite", "neo4j", "jdbc", undefined])("keeps SQL-only filters for %s", (dbType) => {
+    expect(queryEditorFilePicker(dbType)).toEqual({ filters: [{ name: "SQL", extensions: ["sql"] }], accept: ".sql" });
+  });
+
+  it("opens JavaScript as text without rewriting the source or filename", async () => {
+    const source = '// QA script\nuse qa_demo;\ndb.qa_people.find({ name: "QA" });\n';
+    const file = new File([source], "qa-query.JS", { type: "text/javascript" });
+    await expect(readBrowserSqlFile(file)).resolves.toBe(source);
+    expect(sqlFileTitleFromPath("C:\\qa\\qa-query.JS")).toBe("qa-query.JS");
+    expect(isSqlFilePath(file.name)).toBe(false);
+  });
+});
 
 describe("external SQL file paths", () => {
   it("normalizes Windows separators for identity checks", () => {
