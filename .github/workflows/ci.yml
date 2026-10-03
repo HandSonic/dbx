@@ -88,8 +88,6 @@ jobs:
         run: pnpm --filter dbx... install --frozen-lockfile
 
       - name: Type-check frontend
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
         run: pnpm exec vue-tsc --noEmit --project apps/desktop/tsconfig.json
 
   frontend-test:
