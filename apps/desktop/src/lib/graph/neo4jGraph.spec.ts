@@ -8,6 +8,32 @@ const node: GraphNode = { id: "n", vid: { type: "neo4j-element-id", value: "4:sa
 const edge: GraphEdge = { id: "r", vid: { type: "neo4j-element-id", value: "5:sample:1" }, source: "n", target: "m", sourceVid: node.vid, targetVid: { type: "neo4j-element-id", value: "4:sample:2" }, type: "KNOWS", properties: [{ owner: "", name: "active", type: "bool", value: true }] };
 
 describe("Neo4j graph adapter", () => {
+  it("keeps legacy byte text from corrupting JSON when another property is edited", () => {
+    const binaryNode: GraphNode = {
+      ...node,
+      properties: [
+        { owner: "", name: "bytes", type: "List", value: '\u0000binary"\\text' },
+        { owner: "", name: "name", type: "string", value: "before" },
+      ],
+    };
+    const result = extractGraphCells({ columns: ["nested"], rows: [[{ __dbx_graph_cell: "neo4j-v1", kind: "map", display: "before", nodes: [binaryNode], edges: [], displayParts: ['{"node":', { nodeId: "n" }, "}"] }]] as unknown as QueryResult["rows"], affected_rows: 0, execution_time_ms: 0 });
+    applyNeo4jGraphPropertyToResult(result, binaryNode, binaryNode.properties[1], { ...binaryNode.properties[1], value: "after" });
+    expect(JSON.parse(String(result.rows[0][0])).node.properties).toEqual({ bytes: '\u0000binary"\\text', name: "after" });
+  });
+
+  it("preserves a normalized byte array and exact integer tokens after editing", () => {
+    const binaryNode: GraphNode = {
+      ...node,
+      properties: [
+        { owner: "", name: "bytes", type: "List", value: '["0","34","255"]' },
+        { owner: "", name: "age", type: "int", value: "9007199254740993" },
+      ],
+    };
+    const result = extractGraphCells({ columns: ["n"], rows: [[{ __dbx_graph_cell: "neo4j-v1", kind: "vertex", display: "before", nodes: [binaryNode], edges: [] }]] as unknown as QueryResult["rows"], affected_rows: 0, execution_time_ms: 0 });
+    applyNeo4jGraphPropertyToResult(result, binaryNode, binaryNode.properties[1], { ...binaryNode.properties[1], value: "9007199254740994" });
+    expect(result.rows[0][0]).toContain('"bytes":["0","34","255"]');
+    expect(result.rows[0][0]).toContain('"age":9007199254740994');
+  });
   it("updates nested graph references without parsing or rounding scalar JSON tokens", () => {
     const result = extractGraphCells({
       columns: ["nested"],

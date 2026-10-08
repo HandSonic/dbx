@@ -53,3 +53,15 @@ func TestGraphPathsPreserveDirectionParallelEdgesAndSelfLoops(t *testing.T) {
 		t.Fatalf("scalar collection changed: %#v", got)
 	}
 }
+
+func TestGraphBinaryPropertyRetainsItsJSONRepresentation(t *testing.T) {
+	for _, bytes := range [][]byte{{}, {0, 34, 92, 128, 255}, []byte(`{"looks":"like JSON"}`)} {
+		node := neo4j.Node{ElementId: "binary", Labels: []string{"Sample"}, Props: map[string]any{"bytes": bytes, "name": "before"}}
+		cell := normalizeGraphQueryValue(node, false).(*graphCell)
+		property := cell.Nodes[0].Properties[0]
+		value, ok := property.Value.(string)
+		if !ok || !json.Valid([]byte(value)) || value != formatJSONValue(bytes) {
+			t.Fatalf("binary property cannot be reconstructed: %#v, want %s", property, formatJSONValue(bytes))
+		}
+	}
+}

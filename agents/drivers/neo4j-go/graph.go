@@ -156,6 +156,8 @@ func graphProperties(properties map[string]any) []graphProperty {
 			property.Type = "int"
 		case float64:
 			property.Type = "float"
+		case []byte:
+			property.Value = formatJSONValue(typed)
 		}
 		result = append(result, property)
 	}

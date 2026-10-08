@@ -48,7 +48,15 @@ function propertiesJSON(properties: GraphProperty[]): string {
     .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
     .map((property) => {
       const value = property.value;
-      const literal = value === null ? "null" : ["int", "float", "List", "Map"].includes(property.type) ? String(value) : JSON.stringify(value);
+      let literal = JSON.stringify(value);
+      if (typeof value === "string" && ["int", "float", "List", "Map"].includes(property.type)) {
+        try {
+          const parsed: unknown = JSON.parse(value);
+          if ((["int", "float"].includes(property.type) && typeof parsed === "number" && Number.isFinite(parsed)) || (property.type === "List" && Array.isArray(parsed)) || (property.type === "Map" && parsed !== null && typeof parsed === "object" && !Array.isArray(parsed))) literal = value;
+        } catch {
+          // Older Agents may label raw byte text as List; quote it as text.
+        }
+      }
       return `${JSON.stringify(property.name)}:${literal}`;
     });
   return `{${values.join(",")}}`;
