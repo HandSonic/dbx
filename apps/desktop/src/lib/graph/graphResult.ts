@@ -36,7 +36,10 @@ export interface GraphCellRef {
   kind: string;
   nodeIds: string[];
   edgeIds: string[];
+  displayParts?: GraphDisplayPart[];
 }
+
+export type GraphDisplayPart = string | { nodeId: string } | { edgeId: string; path?: boolean };
 
 export interface GraphResult {
   nodes: GraphNode[];
@@ -50,6 +53,7 @@ interface GraphCellEnvelope {
   display: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
+  displayParts?: GraphDisplayPart[];
 }
 
 function graphCellEnvelope(value: unknown): value is GraphCellEnvelope {
@@ -120,10 +124,30 @@ export function extractGraphCells(result: QueryResult): QueryResult {
         nodes.set(node.id, mergeNode(nodes.get(node.id), node));
       }
       for (const edge of value.edges) edges.set(edge.id, mergeEdge(edges.get(edge.id), edge));
-      cells.push({ row: rowIndex, column: columnIndex, kind: value.kind, nodeIds: [...new Set(value.nodes.map((node) => node.id))], edgeIds: [...new Set(value.edges.map((edge) => edge.id))] });
+      cells.push({ row: rowIndex, column: columnIndex, kind: value.kind, nodeIds: [...new Set(value.nodes.map((node) => node.id))], edgeIds: [...new Set(value.edges.map((edge) => edge.id))], ...(value.displayParts ? { displayParts: value.displayParts } : {}) });
     });
   });
   if (rows) result.rows = rows;
   if (cells.length) result.graph_data = mergeGraphResults(result.graph_data, { nodes: [...nodes.values()], edges: [...edges.values()], cells });
   return result;
+}
+
+export function updateGraphResultProperty(result: QueryResult, entity: GraphNode | GraphEdge, property: GraphProperty, updated: GraphProperty, formatNode: (node: GraphNode) => string, formatEdge: (edge: GraphEdge) => string, formatCell?: (cell: GraphCellRef) => string | undefined): void {
+  const graph = result.graph_data;
+  if (!graph) return;
+  const nodes = graph.nodes.filter((node) => node.id === entity.id);
+  const edges = graph.edges.filter((edge) => edge.id === entity.id);
+  for (const item of [...nodes, ...edges]) {
+    const target = item.properties.find((candidate) => candidate.owner === property.owner && candidate.name === property.name);
+    if (target) target.value = updated.value;
+  }
+  const affected = graph.cells.filter((cell) => cell.nodeIds.includes(entity.id) || cell.edgeIds.includes(entity.id));
+  if (!affected.length) return;
+  const rows = result.rows.map((row) => [...row]);
+  for (const cell of affected) {
+    const node = cell.kind === "vertex" ? nodes.find((candidate) => cell.nodeIds[0] === candidate.id) : undefined;
+    const edge = cell.kind === "edge" ? edges.find((candidate) => cell.edgeIds[0] === candidate.id) : undefined;
+    if (rows[cell.row]) rows[cell.row][cell.column] = formatCell?.(cell) ?? (node ? formatNode(node) : edge ? formatEdge(edge) : rows[cell.row][cell.column]);
+  }
+  result.rows = rows;
 }

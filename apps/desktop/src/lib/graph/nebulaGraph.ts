@@ -1,4 +1,4 @@
-import type { GraphEdge, GraphNode, GraphProperty, GraphVid } from "./graphResult";
+import { updateGraphResultProperty, type GraphEdge, type GraphNode, type GraphProperty, type GraphVid } from "./graphResult";
 import type { QueryResult } from "@/types/database";
 
 function quoteIdentifier(value: string): string {
@@ -81,24 +81,32 @@ function nodeDisplay(node: GraphNode): string {
   return `(${quoteVid(node.vid)}${tags.length ? ` :${tags.join(" :")}` : ""})`;
 }
 
-function edgeDisplay(edge: GraphEdge): string {
+function edgeDisplay(edge: GraphEdge, path = false): string {
   const properties = edge.properties.map((property) => `${property.name}: ${propertyDisplay(property)}`).join(", ");
+  if (path) return `[:${edge.type}@${edge.rank} {${properties}}]`;
   return `[:${edge.type} ${quoteVid(edge.sourceVid)}->${quoteVid(edge.targetVid)} @${edge.rank} {${properties}}]`;
 }
 
 export function applyGraphPropertyToResult(result: QueryResult, entity: GraphNode | GraphEdge, property: GraphProperty, updated: GraphProperty): void {
   const graph = result.graph_data;
   if (!graph) return;
-  const nodes = graph.nodes.filter((node) => node.id === entity.id);
-  const edges = graph.edges.filter((edge) => edge.id === entity.id);
-  for (const item of [...nodes, ...edges]) {
-    const target = item.properties.find((candidate) => candidate.owner === property.owner && candidate.name === property.name);
-    if (target) target.value = updated.value;
-  }
-  const affected = graph.cells.filter((cell) => nodes.some((node) => cell.kind === "vertex" && cell.nodeIds.length === 1 && cell.nodeIds[0] === node.id) || edges.some((edge) => cell.kind === "edge" && cell.edgeIds.length === 1 && cell.edgeIds[0] === edge.id));
-  for (const cell of affected) {
-    const node = nodes.find((candidate) => cell.nodeIds[0] === candidate.id);
-    const edge = edges.find((candidate) => cell.edgeIds[0] === candidate.id);
-    if (result.rows[cell.row]) result.rows[cell.row][cell.column] = node ? nodeDisplay(node) : edge ? edgeDisplay(edge) : result.rows[cell.row][cell.column];
-  }
+  const nodes = new Map(graph.nodes.map((node) => [node.id, node]));
+  const edges = new Map(graph.edges.map((edge) => [edge.id, edge]));
+  updateGraphResultProperty(result, entity, property, updated, nodeDisplay, edgeDisplay, (cell) => {
+    if (!cell.displayParts) return undefined;
+    const parts: string[] = [];
+    for (const part of cell.displayParts) {
+      if (typeof part === "string") parts.push(part);
+      else if ("nodeId" in part) {
+        const node = nodes.get(part.nodeId);
+        if (!node?.vid) return undefined;
+        parts.push(nodeDisplay(node));
+      } else {
+        const edge = edges.get(part.edgeId);
+        if (!edge?.sourceVid || !edge.targetVid) return undefined;
+        parts.push(edgeDisplay(edge, part.path));
+      }
+    }
+    return parts.join("");
+  });
 }

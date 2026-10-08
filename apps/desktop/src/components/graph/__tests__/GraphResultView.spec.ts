@@ -92,6 +92,20 @@ afterEach(() => {
 });
 
 describe("graph result request isolation", () => {
+  it.each(["string", "bool", "int", "float"])("does not offer edits for a NULL %s property", async (type) => {
+    const vertex = node("null-node");
+    vertex.properties = [{ owner: "Person", name: "nullable", type, value: null }];
+    const saveProperty = vi.fn();
+    const { host } = await mountGraph(graph(vertex), { saveProperty });
+    await select("null-node");
+    const button = [...host.querySelectorAll<HTMLButtonElement>("aside button")].find((item) => item.textContent?.trim() === "NULL");
+    expect(button).toBeDefined();
+    expect(button!.disabled).toBe(true);
+    button!.click();
+    await flush();
+    expect(host.querySelector('input[aria-label="nullable"]')).toBeNull();
+    expect(saveProperty).not.toHaveBeenCalled();
+  });
   it("discards an expansion after replacing the result, even with overlapping identities", async () => {
     const pending = deferred<GraphResult>();
     const { state, host } = await mountGraph(graph(node("shared")), { expandNode: () => pending.promise });
