@@ -60,7 +60,11 @@ export function graphPropertyMatchesValue(property: GraphProperty, value: string
     return /^-?\d+$/u.test(property.value) && /^-?\d+$/u.test(value) && BigInt(property.value) === BigInt(value);
   }
   if (property.type === "float" && typeof property.value === "string" && typeof value === "string") {
-    return property.value.trim() !== "" && value.trim() !== "" && Number.isFinite(Number(property.value)) && Number(property.value) === Number(value);
+    // Nebula FLOAT is single-precision and the agent echoes the YIELDed value
+    // through a float64 format, so a stored 3.15 round-trips as
+    // "3.1500000948905659"; compare at binary32 precision to keep genuine
+    // concurrent updates detectable without false conflicts.
+    return property.value.trim() !== "" && value.trim() !== "" && Number.isFinite(Number(property.value)) && Number.isFinite(Number(value)) && Math.fround(Number(property.value)) === Math.fround(Number(value));
   }
   return property.value === value;
 }

@@ -63,6 +63,11 @@ describe("Nebula graph actions", () => {
     ["float", "-1e-06", "-0.000001", true],
     ["float", "1e+20", "100000000000000000000", true],
     ["float", "21.5", "22.5", false],
+    // A stored single-precision FLOAT echoes back through a float64 format;
+    // the promoted representation must still match the requested value.
+    ["float", "3.1500000948905659", "3.15", true],
+    ["float", "0.10000000149011612", "0.1", true],
+    ["float", "3.1500000948905659", "3.16", false],
     ["float", "", "0", false],
     ["float", "NaN", "NaN", false],
     ["bool", true, false, false],
