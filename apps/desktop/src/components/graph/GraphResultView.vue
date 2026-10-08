@@ -39,6 +39,8 @@ let cy: Core | undefined;
 let observer: ResizeObserver | undefined;
 let themeObserver: MutationObserver | undefined;
 let lastNodeTap = { id: "", at: 0 };
+let disposed = false;
+let graphRevision = 0;
 
 const graph = computed(() => mergeGraphResults(props.graph, expanded.value) ?? props.graph);
 const visibleNodes = computed(() => graph.value.nodes.filter((node) => !hidden.value.has(node.id)).slice(0, MAX_VISIBLE_NODES));
@@ -71,7 +73,7 @@ function renderGraph(keepPositions = false) {
   const positions = new Map<string, { x: number; y: number }>();
   if (keepPositions && cy)
     cy.nodes().forEach((node) => {
-      positions.set(node.id(), node.position());
+      if (visibleNodeIds.value.has(node.id())) positions.set(node.id(), node.position());
     });
   cy?.destroy();
   const elements: ElementDefinition[] = [
@@ -230,17 +232,21 @@ function togglePin() {
 
 async function expand() {
   if (!selectedNode.value || !props.expandNode || busy.value) return;
+  const revision = graphRevision;
+  const isCurrent = () => !disposed && graphRevision === revision;
   busy.value = true;
   error.value = "";
   try {
     const result = await props.expandNode(selectedNode.value);
-    expanded.value = mergeGraphResults(expanded.value, result);
+    if (!isCurrent()) return;
+    // Neighbor-query rows do not belong to the original result table.
+    expanded.value = mergeGraphResults(expanded.value, result ? { ...result, cells: [] } : undefined);
     await nextTick();
-    renderGraph(true);
+    if (isCurrent()) renderGraph(true);
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : String(cause);
+    if (isCurrent()) error.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
-    busy.value = false;
+    if (isCurrent()) busy.value = false;
   }
 }
 
@@ -256,20 +262,25 @@ function startEdit(property: GraphProperty) {
 
 async function save(property: GraphProperty) {
   if (!selected.value || !props.saveProperty || busy.value) return;
+  const entity = selected.value;
+  const revision = graphRevision;
+  const editKey = editing.value;
+  const isCurrent = () => !disposed && graphRevision === revision;
   busy.value = true;
   error.value = "";
   try {
-    const updated = await props.saveProperty(selected.value, property, draft.value);
-    if (!updated) return;
-    const element = selected.value;
+    const updated = await props.saveProperty(entity, property, draft.value);
+    if (!updated || !isCurrent()) return;
+    const element = ("labels" in entity ? graph.value.nodes : graph.value.edges).find((item) => item.id === entity.id);
+    if (!element) return;
     const target = element.properties.find((candidate) => candidate.owner === property.owner && candidate.name === property.name);
     if (target) target.value = updated.value;
-    if (selectedKind.value === "node") cy?.getElementById(element.id).data("label", nodeLabel(element as GraphNode));
-    editing.value = "";
+    if ("labels" in element) cy?.getElementById(element.id).data("label", nodeLabel(element));
+    if (selectedId.value === entity.id && editing.value === editKey) editing.value = "";
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : String(cause);
+    if (isCurrent() && selectedId.value === entity.id) error.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
-    busy.value = false;
+    if (isCurrent()) busy.value = false;
   }
 }
 
@@ -305,12 +316,22 @@ watch(
         return previous.nodes.every((node) => nextNodeIds.has(node.id));
       })();
     if (!appended) {
+      graphRevision++;
+      busy.value = false;
       expanded.value = undefined;
+      selectedId.value = "";
+      editing.value = "";
+      error.value = "";
+      lastNodeTap = { id: "", at: 0 };
       hidden.value = new Set();
       pinned.value = new Set();
     }
-    void nextTick(() => renderGraph(appended));
+    const revision = graphRevision;
+    void nextTick(() => {
+      if (!disposed && graphRevision === revision) renderGraph(appended);
+    });
   },
+  { flush: "sync" },
 );
 watch(selectedId, () => {
   editing.value = "";
@@ -331,6 +352,7 @@ onMounted(() => {
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
 });
 onBeforeUnmount(() => {
+  disposed = true;
   observer?.disconnect();
   themeObserver?.disconnect();
   cy?.destroy();
@@ -399,14 +421,14 @@ onBeforeUnmount(() => {
               <span class="shrink-0 text-[10px] text-muted-foreground">{{ property.type }}</span>
             </div>
             <template v-if="editing === `${property.owner}\u0000${property.name}`">
-              <label v-if="property.type === 'bool'" class="mt-1 flex items-center gap-2"><input v-model="draft" type="checkbox" class="h-4 w-4" />{{ draft ? "true" : "false" }}</label>
-              <Input v-else v-model="draftText" class="mt-1 h-7 text-xs" :aria-label="property.name" @keyup.enter="save(property)" />
+              <label v-if="property.type === 'bool'" class="mt-1 flex items-center gap-2"><input v-model="draft" type="checkbox" :disabled="busy" class="h-4 w-4" />{{ draft ? "true" : "false" }}</label>
+              <Input v-else v-model="draftText" :disabled="busy" class="mt-1 h-7 text-xs" :aria-label="property.name" @keyup.enter="save(property)" />
               <div class="mt-1 flex justify-end gap-1">
                 <Button size="icon" variant="ghost" class="h-6 w-6" :title="t('graph.cancel')" :aria-label="t('graph.cancel')" @click="editing = ''"><X class="h-3.5 w-3.5" /></Button>
                 <Button size="icon" variant="ghost" class="h-6 w-6" :title="t('graph.save')" :aria-label="t('graph.save')" :disabled="busy" @click="save(property)"><Save class="h-3.5 w-3.5" /></Button>
               </div>
             </template>
-            <button v-else type="button" class="mt-1 block w-full break-all text-left text-foreground" :class="canEdit(property) ? 'hover:underline' : 'cursor-default'" :disabled="!canEdit(property)" @click="startEdit(property)">
+            <button v-else type="button" class="mt-1 block w-full break-all text-left text-foreground" :class="canEdit(property) ? 'hover:underline' : 'cursor-default'" :disabled="busy || !canEdit(property)" @click="startEdit(property)">
               {{ property.value === null ? "NULL" : String(property.value) }}
             </button>
           </div>

@@ -50,7 +50,19 @@ export function graphPropertyFromUpdateResult(result: QueryResult, property: Gra
   if (result.execution_error) throw new Error(result.error?.detail ?? "NebulaGraph update failed");
   if (result.rows.length !== 1 || !result.rows[0]?.length || result.rows[0][0] === null) throw new Error("The NebulaGraph property was not updated");
   const value = result.rows[0][0];
+  if (property.type === "bool" && ![true, false, "true", "false"].includes(value as string | boolean)) throw new Error("Invalid returned graph boolean");
+  if (property.type === "int" && typeof value === "number" && !Number.isSafeInteger(value)) throw new Error("Inexact returned graph integer");
   return { ...property, value: property.type === "bool" ? value === true || value === "true" : String(value) };
+}
+
+export function graphPropertyMatchesValue(property: GraphProperty, value: string | boolean): boolean {
+  if (property.type === "int" && typeof property.value === "string" && typeof value === "string") {
+    return /^-?\d+$/u.test(property.value) && /^-?\d+$/u.test(value) && BigInt(property.value) === BigInt(value);
+  }
+  if (property.type === "float" && typeof property.value === "string" && typeof value === "string") {
+    return property.value.trim() !== "" && value.trim() !== "" && Number.isFinite(Number(property.value)) && Number(property.value) === Number(value);
+  }
+  return property.value === value;
 }
 
 function propertyDisplay(property: GraphProperty): string {
