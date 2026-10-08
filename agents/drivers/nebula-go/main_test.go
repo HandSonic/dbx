@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"math"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -108,6 +110,23 @@ func TestReadRowsPreservesScalarAndGraphValues(t *testing.T) {
 	metadata, err := metadataRows(value)
 	if err != nil || metadata[0]["name"] != "Ada" || metadata[0]["count"] != "42" {
 		t.Fatalf("metadata=%#v err=%v", metadata, err)
+	}
+}
+
+func TestReadRowsFloatRoundTripDoesNotUseSDKDisplay(t *testing.T) {
+	for _, number := range []float64{0.000001, -0.000001, 1e20, 1.25e-7, math.SmallestNonzeroFloat64, math.MaxFloat64} {
+		t.Run(strconv.FormatFloat(number, 'g', -1, 64), func(t *testing.T) {
+			result := resultSet(t, []string{"dbx_value"}, [][]*wire.Value{{{FVal: &number}}})
+			rows, types, err := readRows(result, 1)
+			if err != nil {
+				t.Fatal(err)
+			}
+			text := rows[0][0].(string)
+			got, err := strconv.ParseFloat(text, 64)
+			if err != nil || got != number || types[0] != "float" {
+				t.Fatalf("float round-trip lost: value=%q parsed=%v error=%v types=%v", text, got, err, types)
+			}
+		})
 	}
 }
 

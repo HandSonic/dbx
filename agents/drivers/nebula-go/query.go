@@ -76,11 +76,12 @@ type graphEdge struct {
 }
 
 type graphCell struct {
-	Marker  string      `json:"__dbx_graph_cell"`
-	Kind    string      `json:"kind"`
-	Display string      `json:"display"`
-	Nodes   []graphNode `json:"nodes"`
-	Edges   []graphEdge `json:"edges"`
+	Marker       string      `json:"__dbx_graph_cell"`
+	Kind         string      `json:"kind"`
+	Display      string      `json:"display"`
+	Nodes        []graphNode `json:"nodes"`
+	Edges        []graphEdge `json:"edges"`
+	DisplayParts []any       `json:"displayParts,omitempty"`
 }
 
 func (s *agentSession) dispatch(method string, params map[string]json.RawMessage) (any, error) {
@@ -279,6 +280,11 @@ func normalizeValue(value *nebula.ValueWrapper) any {
 			return text
 		}
 	}
+	if value.IsFloat() {
+		if number, err := value.AsFloat(); err == nil {
+			return strconv.FormatFloat(number, 'g', -1, 64)
+		}
+	}
 	if graph := graphCellForValue(value); graph != nil {
 		return graph
 	}
@@ -294,6 +300,7 @@ func graphCellForValue(value *nebula.ValueWrapper) *graphCell {
 	if len(cell.Nodes) == 0 && len(cell.Edges) == 0 {
 		return nil
 	}
+	appendGraphDisplay(value, &cell.DisplayParts)
 	return cell
 }
 

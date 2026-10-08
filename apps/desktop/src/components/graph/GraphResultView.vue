@@ -251,7 +251,7 @@ async function expand() {
 }
 
 function canEdit(property: GraphProperty): boolean {
-  return !props.readOnly && !!props.saveProperty && ["string", "bool", "int", "float"].includes(property.type);
+  return !props.readOnly && !!props.saveProperty && property.value !== null && ["string", "bool", "int", "float"].includes(property.type);
 }
 
 function startEdit(property: GraphProperty) {

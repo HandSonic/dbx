@@ -40,7 +40,7 @@ export interface GraphCellRef {
   displayParts?: GraphDisplayPart[];
 }
 
-export type GraphDisplayPart = string | { nodeId: string } | { edgeId: string };
+export type GraphDisplayPart = string | { nodeId: string } | { edgeId: string; path?: boolean };
 
 export interface GraphResult {
   nodes: GraphNode[];

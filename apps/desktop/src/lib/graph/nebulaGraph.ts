@@ -63,11 +63,32 @@ function nodeDisplay(node: GraphNode): string {
   return `(${quoteVid(node.vid)}${tags.length ? ` :${tags.join(" :")}` : ""})`;
 }
 
-function edgeDisplay(edge: GraphEdge): string {
+function edgeDisplay(edge: GraphEdge, path = false): string {
   const properties = edge.properties.map((property) => `${property.name}: ${propertyDisplay(property)}`).join(", ");
+  if (path) return `[:${edge.type}@${edge.rank} {${properties}}]`;
   return `[:${edge.type} ${quoteVid(edge.sourceVid)}->${quoteVid(edge.targetVid)} @${edge.rank} {${properties}}]`;
 }
 
 export function applyGraphPropertyToResult(result: QueryResult, entity: GraphNode | GraphEdge, property: GraphProperty, updated: GraphProperty): void {
-  updateGraphResultProperty(result, entity, property, updated, nodeDisplay, edgeDisplay);
+  const graph = result.graph_data;
+  if (!graph) return;
+  const nodes = new Map(graph.nodes.map((node) => [node.id, node]));
+  const edges = new Map(graph.edges.map((edge) => [edge.id, edge]));
+  updateGraphResultProperty(result, entity, property, updated, nodeDisplay, edgeDisplay, (cell) => {
+    if (!cell.displayParts) return undefined;
+    const parts: string[] = [];
+    for (const part of cell.displayParts) {
+      if (typeof part === "string") parts.push(part);
+      else if ("nodeId" in part) {
+        const node = nodes.get(part.nodeId);
+        if (!node?.vid) return undefined;
+        parts.push(nodeDisplay(node));
+      } else {
+        const edge = edges.get(part.edgeId);
+        if (!edge?.sourceVid || !edge.targetVid) return undefined;
+        parts.push(edgeDisplay(edge, part.path));
+      }
+    }
+    return parts.join("");
+  });
 }
