@@ -291,11 +291,25 @@ function exportImage() {
 watch(query, highlightSearch);
 watch(
   () => props.graph,
-  () => {
-    expanded.value = undefined;
-    hidden.value = new Set();
-    pinned.value = new Set();
-    void nextTick(() => renderGraph());
+  (next, previous) => {
+    // Appending a result page reuses the same cells and only adds new ones;
+    // keep the view state and re-render with preserved positions instead of
+    // wiping selection/pins/hidden nodes and re-running a full layout.
+    const appended =
+      !!previous &&
+      previous.cells.length < next.cells.length &&
+      (() => {
+        const nextCellKeys = new Set(next.cells.map((cell) => `${cell.row}:${cell.column}`));
+        if (previous.cells.some((cell) => !nextCellKeys.has(`${cell.row}:${cell.column}`))) return false;
+        const nextNodeIds = new Set(next.nodes.map((node) => node.id));
+        return previous.nodes.every((node) => nextNodeIds.has(node.id));
+      })();
+    if (!appended) {
+      expanded.value = undefined;
+      hidden.value = new Set();
+      pinned.value = new Set();
+    }
+    void nextTick(() => renderGraph(appended));
   },
 );
 watch(selectedId, () => {
