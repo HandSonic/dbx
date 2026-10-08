@@ -26,4 +26,15 @@ describe("Neo4j read-only query safety", () => {
   ])("blocks writes, calls and incomplete input: %s", (sql) => expect(classifySqlRisk(sql, { dialect: "neo4j" }).risk).not.toBe("read"));
 
   it("does not enable MATCH for SQL dialects", () => expect(classifySqlRisk("MATCH (n) RETURN n", { dialect: "mysql" }).risk).not.toBe("read"));
+
+  it.each(["WITH {set: 1, delete: 2} AS m RETURN m.set, m.delete", "MATCH (n:SET) WHERE n.remove = $delete RETURN n", "MATCH (n) RETURN n./* property */set"])("allows keyword-named identifiers: %s", (sql) => expect(classifySqlRisk(sql, { dialect: "neo4j" }).risk).toBe("read"));
+
+  it.each([
+    String.raw`MATCH (n) \u0053ET n.p = 1 RETURN n`,
+    String.raw`MATCH (n) // hidden\u000ASET n.p = 1 RETURN n`,
+    String.raw`MATCH (n) RETURN n.\u0060name\u0060 SET n.p = 1 RETURN n`,
+    "WITH {set: 1} AS m MATCH (n) SET n.p = m.set RETURN n",
+    "MATCH (n:SET) DELETE n RETURN 1",
+    "MATCH (n) RETURN n.set; CALL dbms.killQuery('q')",
+  ])("does not hide writes behind escapes or identifier names: %s", (sql) => expect(classifySqlRisk(sql, { dialect: "neo4j" }).risk).not.toBe("read"));
 });

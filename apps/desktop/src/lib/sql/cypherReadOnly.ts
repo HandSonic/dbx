@@ -2,6 +2,8 @@ const UNSAFE_WORDS = new Set(["CREATE", "INSERT", "MERGE", "SET", "REMOVE", "DEL
 
 // Keep parity with dbx-sql-core/cypher_read_only.rs. `--` must remain an edge.
 export function isProvenReadOnlyCypher(source: string): boolean {
+  // Neo4j expands Unicode escapes before lexing, including inside comments.
+  if (source.includes("\\u")) return false;
   const statements: string[][] = [[]];
   let index = 0;
   while (index < source.length) {
@@ -45,8 +47,17 @@ export function isProvenReadOnlyCypher(source: string): boolean {
       const start = index++;
       while (index < source.length && /[\p{L}\p{N}_]/u.test(source[index])) index++;
       statements[statements.length - 1].push(source.slice(start, index).toUpperCase());
-    } else index++;
+    } else {
+      if ([".", ":", "$"].includes(char)) statements[statements.length - 1].push(char);
+      else if (!/\s/u.test(char)) statements[statements.length - 1].push("<symbol>");
+      index++;
+    }
   }
   const nonempty = statements.filter((words) => words.length);
-  return nonempty.length > 0 && nonempty.every((words) => ["MATCH", "OPTIONAL", "RETURN", "WITH", "UNWIND", "SHOW", "EXPLAIN", "PROFILE"].includes(words[0]) && (words[0] === "SHOW" || words.includes("RETURN")) && !words.some((word) => UNSAFE_WORDS.has(word)));
+  return (
+    nonempty.length > 0 &&
+    nonempty.every(
+      (words) => ["MATCH", "OPTIONAL", "RETURN", "WITH", "UNWIND", "SHOW", "EXPLAIN", "PROFILE"].includes(words[0]) && (words[0] === "SHOW" || words.includes("RETURN")) && !words.some((word, index) => UNSAFE_WORDS.has(word) && ![".", ":", "$"].includes(words[index - 1]) && words[index + 1] !== ":"),
+    )
+  );
 }

@@ -23,6 +23,10 @@ const UNSAFE_WORDS: &[&str] = &[
 // Cypher's `--` is a relationship, not a SQL line comment. Keep this scanner
 // separate so trailing writes cannot disappear during SQL comment stripping.
 pub(crate) fn is_proven_read_only_cypher(source: &str) -> bool {
+    // Neo4j expands Unicode escapes before lexing, including inside comments.
+    if source.contains("\\u") {
+        return false;
+    }
     let chars: Vec<char> = source.chars().collect();
     let mut index = 0;
     let mut statements = vec![Vec::<String>::new()];
@@ -85,6 +89,11 @@ pub(crate) fn is_proven_read_only_cypher(source: &str) -> bool {
             }
             statements.last_mut().unwrap().push(chars[start..index].iter().collect::<String>().to_ascii_uppercase());
         } else {
+            if matches!(ch, '.' | ':' | '$') {
+                statements.last_mut().unwrap().push(ch.to_string());
+            } else if !ch.is_whitespace() {
+                statements.last_mut().unwrap().push("<symbol>".into());
+            }
             index += 1;
         }
     }
@@ -95,7 +104,14 @@ pub(crate) fn is_proven_read_only_cypher(source: &str) -> bool {
                 words.first().map(String::as_str),
                 Some("MATCH" | "OPTIONAL" | "RETURN" | "WITH" | "UNWIND" | "SHOW" | "EXPLAIN" | "PROFILE")
             ) && (words[0] == "SHOW" || words.iter().any(|word| word == "RETURN"))
-                && !words.iter().any(|word| UNSAFE_WORDS.contains(&word.as_str()))
+                && !words.iter().enumerate().any(|(index, word)| {
+                    UNSAFE_WORDS.contains(&word.as_str())
+                        && !matches!(
+                            index.checked_sub(1).and_then(|previous| words.get(previous)).map(String::as_str),
+                            Some("." | ":" | "$")
+                        )
+                        && words.get(index + 1).map(String::as_str) != Some(":")
+                })
         })
 }
 
@@ -113,6 +129,9 @@ mod tests {
             "SHOW DATABASES",
             "EXPLAIN MATCH (n) RETURN n",
             "/* comment */ WITH 1 AS x RETURN x",
+            "WITH {set: 1, delete: 2} AS m RETURN m.set, m.delete",
+            "MATCH (n:SET) WHERE n.remove = $delete RETURN n",
+            "MATCH (n) RETURN n./* property */set",
         ] {
             assert!(check_read_only(source, "test", DatabaseType::Neo4j).is_ok(), "{source}");
         }
@@ -136,6 +155,12 @@ mod tests {
             "",
             "// read",
             "MATCH (n) RETURN 'escaped\\' quote' SET n.x = 1 RETURN n",
+            r"MATCH (n) \u0053ET n.p = 1 RETURN n",
+            r"MATCH (n) // hidden\u000ASET n.p = 1 RETURN n",
+            r"MATCH (n) RETURN n.\u0060name\u0060 SET n.p = 1 RETURN n",
+            "WITH {set: 1} AS m MATCH (n) SET n.p = m.set RETURN n",
+            "MATCH (n:SET) DELETE n RETURN 1",
+            "MATCH (n) RETURN n.set; CALL dbms.killQuery('q')",
         ] {
             assert!(check_read_only(source, "test", DatabaseType::Neo4j).is_err(), "{source}");
         }
