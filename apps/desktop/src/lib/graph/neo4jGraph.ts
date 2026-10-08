@@ -83,4 +83,9 @@ export function applyNeo4jGraphPropertyToResult(result: QueryResult, entity: Gra
       return parts.join("");
     },
   );
+  if (!("labels" in entity) || !result.neo4j_node_cells?.length) return;
+  const affected = new Set(result.graph_data?.cells.filter((cell) => cell.kind === "vertex" && cell.nodeIds.includes(entity.id)).map((cell) => `${cell.row}:${cell.column}`));
+  result.neo4j_node_cells = result.neo4j_node_cells.map((cell) =>
+    affected.has(`${cell.row_index}:${cell.column_index}`) ? { ...cell, properties: cell.properties.map((candidate) => (candidate.name === property.name ? { ...candidate, value: updated.value === null ? null : String(updated.value) } : candidate)) } : cell,
+  );
 }
