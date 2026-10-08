@@ -8,6 +8,13 @@ const node: GraphNode = { id: "n", vid: { type: "neo4j-element-id", value: "4:sa
 const edge: GraphEdge = { id: "r", vid: { type: "neo4j-element-id", value: "5:sample:1" }, source: "n", target: "m", sourceVid: node.vid, targetVid: { type: "neo4j-element-id", value: "4:sample:2" }, type: "KNOWS", properties: [{ owner: "", name: "active", type: "bool", value: true }] };
 
 describe("Neo4j graph adapter", () => {
+  it("retains double precision while Nebula uses its single-precision comparison", () => {
+    const returned = { owner: "", name: "weight", type: "float", value: "3.1500000948905659" };
+    expect(graphAdapterForDatabase("nebula")!.matchesPropertyValue(returned, "3.15")).toBe(true);
+    expect(graphAdapterForDatabase("neo4j")!.matchesPropertyValue(returned, "3.15")).toBe(false);
+    expect(graphAdapterForDatabase("neo4j")!.matchesPropertyValue({ ...returned, value: "3.15000010" }, "3.15000011")).toBe(false);
+    expect(graphAdapterForDatabase("neo4j")!.matchesPropertyValue({ ...returned, value: "3.15" }, "3.15")).toBe(true);
+  });
   it("keeps legacy byte text from corrupting JSON when another property is edited", () => {
     const binaryNode: GraphNode = {
       ...node,

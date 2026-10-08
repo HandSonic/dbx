@@ -203,4 +203,19 @@ describe.each(["nebula", "neo4j"] as const)("ContentArea %s graph actions", (typ
     await expect(saved).resolves.toEqual(expect.objectContaining({ value: "22" }));
     expect(state.activeTab.result!.rows.every((row) => String(row[0]).includes(type === "nebula" ? "age: 22" : '"age":22'))).toBe(true);
   });
+
+  it("uses the adapter's precision when validating a saved float", async () => {
+    vi.spyOn(api, "executeQuery").mockResolvedValue(response("3.1500000948905659"));
+    const { state } = await mountContentArea();
+    const property = state.activeTab.result!.graph_data!.nodes[0].properties[0];
+    property.type = "float";
+    property.value = "3.14";
+    const saved = save(graphViews[0], "3.15");
+    if (type === "nebula") {
+      await expect(saved).resolves.toEqual(expect.objectContaining({ value: "3.1500000948905659" }));
+    } else {
+      await expect(saved).rejects.toThrow("graph.conflict");
+      expect(property.value).toBe("3.14");
+    }
+  });
 });
