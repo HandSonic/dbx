@@ -137,11 +137,22 @@ export function graphPropertyFromUpdateResult(result: QueryResult, property: Gra
   if (result.execution_error) throw new Error(result.error?.detail ?? "Graph property update failed");
   const value = result.rows[0]?.[0];
   if (result.rows.length !== 1 || value === null || value === undefined) throw new Error("The graph property was not updated");
+  if (property.type === "int" && typeof value === "number" && !Number.isSafeInteger(value)) throw new Error("Inexact returned graph integer");
   if (property.type === "bool") {
     if (value !== true && value !== false && value !== "true" && value !== "false") throw new Error("Invalid boolean property returned by the database");
     return { ...property, value: value === true || value === "true" };
   }
   return { ...property, value: String(value) };
+}
+
+export function graphPropertyMatchesValue(property: GraphProperty, value: string | boolean): boolean {
+  if (property.type === "int" && typeof property.value === "string" && typeof value === "string") {
+    return /^-?\d+$/u.test(property.value) && /^-?\d+$/u.test(value) && BigInt(property.value) === BigInt(value);
+  }
+  if (property.type === "float" && typeof property.value === "string" && typeof value === "string") {
+    return property.value.trim() !== "" && value.trim() !== "" && Number.isFinite(Number(property.value)) && Number(property.value) === Number(value);
+  }
+  return property.value === value;
 }
 
 export function updateGraphResultProperty(result: QueryResult, entity: GraphNode | GraphEdge, property: GraphProperty, updated: GraphProperty, formatNode: (node: GraphNode) => string, formatEdge: (edge: GraphEdge) => string, formatCell?: (cell: GraphCellRef) => string | undefined): void {

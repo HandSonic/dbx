@@ -6,7 +6,7 @@ import { canReloadUnavailableDataTab, restoredDataTabReloadFilters } from "@/lib
 import { defaultViewForResult } from "@/lib/query/queryResultDefaultView";
 import { extractNeo4jNodeCells, projectNeo4jNodeResult } from "@/lib/neo4j/neo4jNodeResult";
 import { useNeo4jNodeTableResult } from "@/composables/useNeo4jNodeTableResult";
-import { extractGraphCells, graphPropertyFromUpdateResult, type GraphEdge, type GraphNode, type GraphProperty, type GraphResult } from "@/lib/graph/graphResult";
+import { extractGraphCells, graphPropertyFromUpdateResult, graphPropertyMatchesValue, type GraphEdge, type GraphNode, type GraphProperty, type GraphResult } from "@/lib/graph/graphResult";
 import { graphAdapterForDatabase } from "@/lib/graph/graphAdapters";
 import { queryResultMessages } from "@/lib/query/queryResultMessages";
 import { isQueryExecutionErrorResult } from "@/lib/query/queryResultError";
@@ -395,6 +395,7 @@ const activeResultErrorPosition = computed(() => {
 });
 const activeResultDatabase = computed(() => activeResultExecutionTarget.value?.database ?? props.activeTab.database);
 const activeResultSchema = computed(() => activeResultExecutionTarget.value?.schema ?? props.activeTab.schema);
+const graphViewKey = computed(() => JSON.stringify([props.activeTab.id, props.activeTab.resultViewGeneration, props.activeTab.activeResultRunId, props.activeTab.activeResultIndex, activeResultConnectionId.value, activeResultDatabase.value]));
 const activeEffectiveDatabaseType = computed(() => effectiveDatabaseTypeForConnection(activeResultConnection.value));
 // 表数据工具箱的「导入数据」与侧边栏、对象浏览器共用同一条能力判断：未适配导入的引擎（如 HANA）不出现入口。
 const canOpenTableImport = computed(() => supportsTableImport(activeEffectiveDatabaseType.value));
@@ -771,6 +772,9 @@ async function saveGraphProperty(entity: GraphNode | GraphEdge, property: GraphP
   const connectionId = activeResultConnectionId.value;
   const database = activeResultDatabase.value;
   if (!result?.graph_data || !connectionId || !database) throw new Error(t("graph.resultChanged"));
+  const generation = tab.resultViewGeneration;
+  const sourceKey = graphViewKey.value;
+  const isCurrent = () => props.activeTab === tab && graphViewKey.value === sourceKey && (generation !== undefined ? !!tab.result?.graph_data : tab.result === result);
   const statement = adapter.buildPropertyUpdate(entity, property, value);
   const production = productionContextForDatabase(connection, database);
   if (production.active) {
@@ -778,19 +782,29 @@ async function saveGraphProperty(entity: GraphNode | GraphEdge, property: GraphP
     if (!confirmed) return undefined;
   }
   const currentConnection = connectionStore.getConfig(connectionId);
-  if (tab.result !== result || !currentConnection || connectionIsEffectivelyReadOnly(currentConnection)) throw new Error(t("graph.resultChanged"));
+  if (!isCurrent() || !currentConnection || connectionIsEffectivelyReadOnly(currentConnection)) throw new Error(t("graph.resultChanged"));
   const response = await api.executeQuery(connectionId, database, statement, undefined, undefined, { maxRows: 1 });
+  if (!isCurrent()) return undefined;
   if (response.execution_error) throw new Error(response.error?.detail ?? t("graph.updateFailed"));
   if (response.rows.length === 0) throw new Error(t("graph.conflict"));
   const updated = graphPropertyFromUpdateResult(response, property);
-  if (tab.result === result) adapter.applyPropertyUpdate(result, entity, property, updated);
+  // A failed WHEN condition may still yield the stored value.
+  if (!graphPropertyMatchesValue(updated, value)) throw new Error(t("graph.conflict"));
+  adapter.applyPropertyUpdate(tab.result!, entity, property, updated);
   return updated;
 }
 
 async function expandGraphNode(node: GraphNode): Promise<GraphResult | undefined> {
   const adapter = activeGraphAdapter.value;
-  if (!adapter || !activeResultConnectionId.value || !activeResultDatabase.value) return undefined;
-  const response = await api.executeQuery(activeResultConnectionId.value, activeResultDatabase.value, adapter.buildExpand(node), undefined, undefined, { maxRows: 200 });
+  const tab = props.activeTab;
+  const result = tab.result;
+  const connectionId = activeResultConnectionId.value;
+  const database = activeResultDatabase.value;
+  const generation = tab.resultViewGeneration;
+  const sourceKey = graphViewKey.value;
+  if (!adapter || !connectionId || !database) return undefined;
+  const response = await api.executeQuery(connectionId, database, adapter.buildExpand(node), undefined, undefined, { maxRows: 200 });
+  if (props.activeTab !== tab || graphViewKey.value !== sourceKey || (generation === undefined && tab.result !== result)) return undefined;
   if (response.execution_error) throw new Error(response.error?.detail ?? t("graph.unavailable"));
   return extractGraphCells(response).graph_data;
 }
@@ -2457,6 +2471,7 @@ defineExpose({
             <QueryChart v-else-if="activeOutputView === 'chart' && activeTab.result && !activeElasticsearchJsonResponse" class="flex-1 min-h-0" :result="activeTab.result" />
             <GraphResultView
               v-else-if="activeOutputView === 'graph' && activeTab.result?.graph_data"
+              :key="graphViewKey"
               :graph="activeTab.result.graph_data"
               :rows="activeTab.result.rows"
               :columns="activeTab.result.columns"

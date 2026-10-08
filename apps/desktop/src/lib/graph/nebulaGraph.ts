@@ -1,6 +1,6 @@
 import { updateGraphResultProperty, type GraphEdge, type GraphNode, type GraphProperty, type GraphVid } from "./graphResult";
 import type { QueryResult } from "@/types/database";
-export { graphPropertyFromUpdateResult } from "./graphResult";
+export { graphPropertyFromUpdateResult, graphPropertyMatchesValue } from "./graphResult";
 
 function quoteIdentifier(value: string): string {
   if (

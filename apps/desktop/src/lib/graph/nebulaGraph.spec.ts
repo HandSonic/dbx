@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyGraphPropertyToResult, buildNebulaGraphExpand, buildNebulaGraphPropertyUpdate, graphPropertyFromUpdateResult } from "./nebulaGraph";
+import { applyGraphPropertyToResult, buildNebulaGraphExpand, buildNebulaGraphPropertyUpdate, graphPropertyFromUpdateResult, graphPropertyMatchesValue } from "./nebulaGraph";
 import type { GraphEdge, GraphNode, GraphProperty } from "./graphResult";
 import type { QueryResult } from "@/types/database";
 
@@ -27,5 +27,28 @@ describe("Nebula graph actions", () => {
     expect(node.properties[0].value).toBe("9007199254740994");
     expect(result.rows[0][0]).toContain("9007199254740994");
     expect(() => graphPropertyFromUpdateResult({ ...response, rows: [] }, property)).toThrow();
+  });
+
+  it.each([
+    ["int", "21", "22", false],
+    ["int", "9007199254740993", "9007199254740992", false],
+    ["int", "9007199254740993", "9007199254740993", true],
+    ["int", "0", "-0", true],
+    ["float", "100", "1e2", true],
+    ["float", "21.5", "22.5", false],
+    ["float", "", "0", false],
+    ["float", "NaN", "NaN", false],
+    ["bool", true, false, false],
+    ["bool", false, false, true],
+    ["string", "old", "new", false],
+    ["string", "new", "new", true],
+  ] as const)("checks the stored %s value %s against requested %s", (type, stored, requested, expected) => {
+    expect(graphPropertyMatchesValue({ owner: "Person", name: "value", type, value: stored }, requested)).toBe(expected);
+  });
+
+  it("does not accept malformed booleans or inexact integers as saved values", () => {
+    const response: QueryResult = { columns: ["dbx_value"], rows: [["unexpected"]], affected_rows: 0, execution_time_ms: 0 };
+    expect(() => graphPropertyFromUpdateResult(response, edge.properties[0])).toThrow("boolean");
+    expect(() => graphPropertyFromUpdateResult({ ...response, rows: [[9007199254740992]] }, node.properties[0])).toThrow("integer");
   });
 });
