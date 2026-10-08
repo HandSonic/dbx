@@ -6,7 +6,7 @@ import { canReloadUnavailableDataTab, restoredDataTabReloadFilters } from "@/lib
 import { defaultViewForResult } from "@/lib/query/queryResultDefaultView";
 import { extractNeo4jNodeCells, projectNeo4jNodeResult } from "@/lib/neo4j/neo4jNodeResult";
 import { useNeo4jNodeTableResult } from "@/composables/useNeo4jNodeTableResult";
-import { extractGraphCells, graphPropertyFromUpdateResult, graphPropertyMatchesValue, type GraphEdge, type GraphNode, type GraphProperty, type GraphResult } from "@/lib/graph/graphResult";
+import { extractGraphCells, graphPropertyFromUpdateResult, type GraphEdge, type GraphNode, type GraphProperty, type GraphResult } from "@/lib/graph/graphResult";
 import { graphAdapterForDatabase } from "@/lib/graph/graphAdapters";
 import { queryResultMessages } from "@/lib/query/queryResultMessages";
 import { isQueryExecutionErrorResult } from "@/lib/query/queryResultError";
@@ -789,7 +789,7 @@ async function saveGraphProperty(entity: GraphNode | GraphEdge, property: GraphP
   if (response.rows.length === 0) throw new Error(t("graph.conflict"));
   const updated = graphPropertyFromUpdateResult(response, property);
   // A failed WHEN condition may still yield the stored value.
-  if (!graphPropertyMatchesValue(updated, value)) throw new Error(t("graph.conflict"));
+  if (!adapter.matchesPropertyValue(updated, value)) throw new Error(t("graph.conflict"));
   adapter.applyPropertyUpdate(tab.result!, entity, property, updated);
   return updated;
 }
@@ -2624,6 +2624,7 @@ defineExpose({
                 :source-columns="hasNeo4jNodes ? undefined : activeTab.querySourceColumns"
                 :joined-write-targets="hasNeo4jNodes ? undefined : activeTab.queryWriteTargets"
                 :query-multi-source="(activeTab.queryWriteTargets?.length ?? 0) > 1"
+                :has-unique-query-insert-target="!!activeTab.tableMeta && activeTab.queryAnalysis?.multiSource !== true && (activeTab.queryAnalysis?.sources?.length ?? 1) === 1 && (activeTab.queryWriteTargets?.length ?? 1) <= 1"
                 :readonly-column-indexes="hasNeo4jNodes ? undefined : groupedQueryReadonlyColumnIndexes(activeTab)"
                 :result-column-comments="hasNeo4jNodes ? undefined : activeTab.resultColumnComments"
                 :query-display-source-columns="hasNeo4jNodes ? undefined : activeTab.queryDisplaySourceColumns"
@@ -2665,6 +2666,7 @@ defineExpose({
                         format: 'csv' | 'xlsx' | 'json' | 'txt' | 'sql';
                         includeSqlSheet?: boolean;
                         exportTableName?: string;
+                        exportSchema?: string;
                         exportColumnTypes?: Array<string | null | undefined>;
                         exportColumnExtras?: Array<string | null | undefined>;
                         insertMode?: SqlInsertMode;
