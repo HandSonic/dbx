@@ -82,6 +82,7 @@ export default {
     unknownTypes: "Some database types are unknown. Review their generated types before use.",
     templateHelp:
       "Variables: table.name, table.schema, table.comment, class.name; inside a columns section: column.name, column.type, column.originalType, column.comment, column.defaultValue, column.nullable, column.primaryKey. Use double braces for variables, #columns and /columns for loops, #column.nullable and /column.nullable for conditional sections.",
+  },
   graph: {
     title: "Graph",
     search: "Search graph",

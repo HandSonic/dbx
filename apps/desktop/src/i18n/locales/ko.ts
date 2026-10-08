@@ -82,6 +82,7 @@ export default withEnglishFallback({
     unknownTypes: "일부 데이터베이스 유형을 인식할 수 없습니다. 생성된 유형을 사용하기 전에 확인하세요.",
     templateHelp:
       "변수: table.name, table.schema, table.comment, class.name. columns 섹션 안에서는 column.name, column.type, column.originalType, column.comment, column.defaultValue, column.nullable, column.primaryKey를 사용할 수 있습니다. 변수는 중괄호 두 개로 감싸고, #columns와 /columns는 반복, #column.nullable와 /column.nullable는 조건 블록을 나타냅니다.",
+  },
   graph: {
     title: "그래프",
     search: "그래프 검색",

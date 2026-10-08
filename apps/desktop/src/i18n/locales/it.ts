@@ -82,6 +82,7 @@ export default withEnglishFallback({
     unknownTypes: "Alcuni tipi di database non sono riconosciuti. Controlla i tipi generati prima dell'uso.",
     templateHelp:
       "Variabili: table.name, table.schema, table.comment, class.name; all'interno di una sezione columns: column.name, column.type, column.originalType, column.comment, column.defaultValue, column.nullable, column.primaryKey. Usa doppie parentesi graffe per le variabili, #columns e /columns per i cicli, #column.nullable e /column.nullable per le condizioni.",
+  },
   graph: {
     title: "Grafo",
     search: "Cerca nel grafo",

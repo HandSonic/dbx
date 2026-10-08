@@ -83,6 +83,7 @@ export default withEnglishFallback({
     unknownTypes: "認識できないデータベース型があります。生成された型を確認してから使用してください。",
     templateHelp:
       "変数: table.name、table.schema、table.comment、class.name。columns セクション内では column.name、column.type、column.originalType、column.comment、column.defaultValue、column.nullable、column.primaryKey を使用できます。変数は二重中括弧で囲み、#columns と /columns はループ、#column.nullable と /column.nullable は条件ブロックを表します。",
+  },
   graph: {
     title: "グラフ",
     search: "グラフを検索",

@@ -84,6 +84,7 @@ export default withEnglishFallback({
     unknownTypes: "部分資料庫類型未識別，請檢查產生的欄位類型。",
     templateHelp:
       "變數：table.name、table.schema、table.comment、class.name；欄位迴圈內可用 column.name、column.type、column.originalType、column.comment、column.defaultValue、column.nullable、column.primaryKey。變數使用雙大括號，#columns 與 /columns 表示迴圈，#column.nullable 與 /column.nullable 表示條件區塊。",
+  },
   graph: {
     title: "圖譜",
     search: "搜尋圖譜",

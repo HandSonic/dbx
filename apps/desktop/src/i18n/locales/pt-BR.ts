@@ -83,6 +83,7 @@ export default withEnglishFallback({
     unknownTypes: "Alguns tipos de banco de dados não foram reconhecidos. Revise os tipos gerados antes de usá-los.",
     templateHelp:
       "Variáveis: table.name, table.schema, table.comment, class.name; dentro de uma seção columns: column.name, column.type, column.originalType, column.comment, column.defaultValue, column.nullable, column.primaryKey. Use chaves duplas para variáveis, #columns e /columns para loops, e #column.nullable e /column.nullable para blocos condicionais.",
+  },
   graph: {
     title: "Grafo",
     search: "Pesquisar no grafo",

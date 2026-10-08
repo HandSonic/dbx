@@ -28,6 +28,7 @@ export default withEnglishFallback({
     unknownTypes: "部分数据库类型未识别，请检查生成的字段类型。",
     templateHelp:
       "变量：table.name、table.schema、table.comment、class.name；字段循环内可用 column.name、column.type、column.originalType、column.comment、column.defaultValue、column.nullable、column.primaryKey。变量用双花括号包围，#columns 与 /columns 表示循环，#column.nullable 与 /column.nullable 表示条件块。",
+  },
   graph: {
     title: "图谱",
     search: "搜索图谱",

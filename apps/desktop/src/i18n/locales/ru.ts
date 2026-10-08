@@ -26,6 +26,7 @@ export default withEnglishFallback({
     unknownTypes: "Некоторые типы базы данных не распознаны. Проверьте сгенерированные типы перед использованием.",
     templateHelp:
       "Переменные: table.name, table.schema, table.comment, class.name; внутри секции columns доступны column.name, column.type, column.originalType, column.comment, column.defaultValue, column.nullable, column.primaryKey. Используйте двойные фигурные скобки для переменных, #columns и /columns для циклов, а #column.nullable и /column.nullable для условных блоков.",
+  },
   graph: {
     title: "Граф",
     search: "Поиск по графу",
